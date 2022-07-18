@@ -1,0 +1,112 @@
+---
+####################################################################################
+##### The following arguments are for indicating file locations on your system #####
+####################################################################################
+refs:
+  fasta: /path/to/reference/fasta.fa ## Path to the reference fasta to be used for remapping for souporcell demultiplexing steps. Ideally this would be the same reference used for original mapping but any reference on the same genome with the same 'chr' encoding will do
+  vcf: /path/to/reference/vcf.vcf ## Path to a vcf for SNP genotype locations to use for souporcell. This is typically common SNP locations that can be from your own data or downloaded from 1000G or another resource. Should be filtered for high-confidence SNPs (filtered on INFO or R2) and high minor allele frequency (MAF > 0.01 or 0.05 depending on dataset size)
+  genome: hg38 ## hg38 or hg19
+
+inputs:
+  metadata_file: /path/to/samples_meta.tsv ## Sample metadata file that has two columns: 'Pool' and 'N'. The Pool should be the exact names of the parent folders for the scRNAseq output
+  singularity_image: /path/to/singularity/image.sif ### The complete path to the singularity image that has all the softwares
+  bind_path: /path ## List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}. Singularity will bind the directory that you are running from + subfolders but will not be able to find anything above unless it is in this argument
+  scRNAseq_dir: /path/to/scRNAseq/parent/directory ### the parent directory that has directories for each pool and the scRNA-seq output below it
+
+outputs: 
+  outdir: /path/to/parent/out/dir
+
+
+######################################################################################################################
+##### The following arguments are if you have reference SNPs for these individuals for accuracy testing purposes #####
+######################################################################################################################
+snp:
+  ref_snp_predict: False ## Set to true or false depending on if have reference SNP genotype data to be predicted for pipeline accuracy testing purposes
+  vcf: /path/to/unimputed/reference/vcf.vcf ## Reference SNP genotype vcf that is UNIMPUTED 
+
+#########################################################################################################################################
+##### The following arguments are common parameters such as memory and threads that may need to be changed depending on the dataset #####
+#########################################################################################################################################
+souporcell_ancestry:
+  ### Following options for souporcell execution: souporcell_pipeline.py -i {input.bam} -b {input.barcodes} -f {params.fasta} -t {threads} -o {params.out} -k {params.N} --common_variants {input.snps}
+  souporcell_memory: 24 ## used for both memory and disk allocation
+  souporcell_threads: 8
+
+  ### Following options for lifting souporcell vcf results to hg19 (for ancestry prediction)
+  souporcell_update_vcf_memory: 4 ## used for both memory and disk allocation
+  souporcell_update_vcf_threads: 2
+
+  ### Following options for converting souporcell vcf to plink
+  souporcell_vcf2plink_memory: 8 ## used for both memory and disk allocation
+  souporcell_vcf2plink_threads: 2
+
+  ### Following options for identifying common snps between data and 1000G reference
+  souporcell_common_snps_memory: 24 ## used for both memory and disk allocation
+  souporcell_common_snps_threads: 1
+
+  ### Following options for pruning 1000G data with indep
+  souporcell_prune_1000g_memory: 5
+  souporcell_prune_1000g_threads: 1
+
+  ### Following options for contingency to deal with duplicated snps - to remove from both 1000G and dataaset
+  souporcell_final_pruning_memory: 5
+  souporcell_final_pruning_threads: 1
+
+  ### Following options for subsetting for indicated snps + update X, Y, mt to 23, 24, 25, 26 chrs
+  souporcell_split_data_memory: 4
+  souporcell_split_data_threads: 1
+
+  ### Following options for projecting 1000 genomes data
+  souporcell_pca_1000g_memory: 4
+  souporcell_pca_1000g_threads: 1
+
+  ### Following options for projecting data to 1000 genome pc space
+  souporcell_pca_project_memory: 8
+  souporcell_pca_project_threads: 2
+
+  ### Following options for predicting cell annotation using 1000 genomes reference in the orginal dataset
+  souporcell_pca_projection_assign_original_memory: 12
+  souporcell_pca_projection_assign_original_threads: 2
+
+
+### These rules will just run if ref_snp_predict in the snp section above is ste to True
+reference_ancestry_predictions:
+  ### Following options for correlating individual IDs to clusters
+  souporcell_correlate_indivs_memory: 8
+  souporcell_correlate_indivs_threads: 2
+
+  ### Following options for converting souporcell vcf to plink
+  reference_vcf2plink_memory: 8 ## used for both memory and disk allocation
+  reference_vcf2plink_threads: 2
+
+  ### Following options for identifying common snps between data and 1000G reference
+  reference_common_snps_memory: 24 ## used for both memory and disk allocation
+  reference_common_snps_threads: 1
+
+  ### Following options for pruning 1000G data with indep
+  reference_prune_1000g_memory: 5
+  reference_prune_1000g_threads: 1
+
+  ### Following options for contingency to deal with duplicated snps - to remove from both 1000G and dataaset
+  reference_final_pruning_memory: 5
+  reference_final_pruning_threads: 1
+
+  ### Following options for subsetting for indicated snps + update X, Y, mt to 23, 24, 25, 26 chrs
+  reference_split_data_memory: 4
+  reference_split_data_threads: 1
+
+  ### Following options for projecting 1000 genomes data
+  reference_pca_1000g_memory: 4
+  reference_pca_1000g_threads: 1
+
+  ### Following options for projecting data to 1000 genome pc space
+  reference_pca_project_memory: 8
+  reference_pca_project_threads: 2
+
+  ### Following options for predicting cell annotation using 1000 genomes reference in the orginal dataset
+  reference_pca_projection_assign_original_memory: 12
+  reference_pca_projection_assign_original_threads: 2
+
+  ### Following options for comparing souporcell predicted annotations to reference annotations
+  reference_souporcell_comparison_memory: 16
+  reference_souporcell_comparison_threads: 4
