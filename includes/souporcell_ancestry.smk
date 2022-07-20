@@ -43,7 +43,7 @@ if ref_dict["genome"] == "hg38":
         params:
             sif = input_dict["singularity_image"],
             bind = input_dict["bind_path"],
-            fasta = fasta,
+            fasta = fasta_lift,
             chain_crossmap = chain_cross
         shell:
             """
@@ -71,8 +71,7 @@ else:
         threads: souporcell_ancestry_dict["souporcell_update_vcf_threads"]
         params:
             sif = input_dict["singularity_image"],
-            bind = input_dict["bind_path"],
-            fasta = fasta,
+            bind = input_dict["bind_path"]
         shell:
             """
             singularity exec --bind {params.bind} {params.sif} grep "#CHROM" {input.souporcell} | \
@@ -357,8 +356,7 @@ rule souporcell_pca_projection_assign_original:
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_path"],
         outdir = output_dict["outdir"] + "/{pool}/souporcell/pca_sex_checks_original/",
-        # script = "/opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/ancestry_prediction_from_scRNA-seq/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
+        script = "/opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.outdir} > {params.variables}

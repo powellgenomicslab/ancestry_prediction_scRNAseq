@@ -3,9 +3,11 @@
 ##### The following arguments are for indicating file locations on your system #####
 ####################################################################################
 refs:
+  genome: hg38 ## hg38 or hg19; genome the sequencing data have been aligned to
   fasta: /path/to/reference/fasta.fa ## Path to the reference fasta to be used for remapping for souporcell demultiplexing steps. Ideally this would be the same reference used for original mapping but any reference on the same genome with the same 'chr' encoding will do
+  hg19_fasta: /path/to/hg19/reference/genome.fa ## Path to the reference hg19 fasta to be used for remapping for souporcell demultiplexing steps. Ideally this would be the same reference used for original mapping but any reference on the same genome with the same 'chr' encoding will do
+  hg38_fasta: /path/to/hg38/reference/genome.fa ## ONLY NEEDED IF DATA ORIGINALLY MAPPED TO HG38; Path to the reference hg38 fasta to be used for remapping for souporcell demultiplexing steps. Ideally this would be the same reference used for original mapping but any reference on the same genome with the same 'chr' encoding will do
   vcf: /path/to/reference/vcf.vcf ## Path to a vcf for SNP genotype locations to use for souporcell. This is typically common SNP locations that can be from your own data or downloaded from 1000G or another resource. Should be filtered for high-confidence SNPs (filtered on INFO or R2) and high minor allele frequency (MAF > 0.01 or 0.05 depending on dataset size)
-  genome: hg38 ## hg38 or hg19
 
 inputs:
   metadata_file: /path/to/samples_meta.tsv ## Sample metadata file that has two columns: 'Pool' and 'N'. The Pool should be the exact names of the parent folders for the scRNAseq output

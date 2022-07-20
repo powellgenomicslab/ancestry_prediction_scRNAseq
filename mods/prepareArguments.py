@@ -151,6 +151,6 @@ def get_scrnaseq_dirs(config):
 def parsePaths(config):
     # Strip trailing slashes from paths 
     # scrnaseq_dir, individual_list_dir, output_dir
-    config["outputs"]["outdir"] = (config["outputs"]["outdir"]).rstrip("/")
     config["inputs"]["scRNAseq_dir"] = (config["inputs"]["scRNAseq_dir"]).rstrip("/")
+    config["outputs"]["outdir"] = (config["outputs"]["outdir"]).rstrip("/")
     return(config)

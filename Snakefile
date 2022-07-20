@@ -16,19 +16,25 @@ from mods import prepareArguments
 from mods import read10x
 
 
-# config["inputs"]["scRNAseq_dir"] = (config["inputs"]["scRNAseq_dir"]).rstrip("/")
 
 ### Extract variables from configuration file for use within the rest of the pipeline
-# config = prepareArguments.parsePaths(config)
-
+config = prepareArguments.parsePaths(config)
 input_dict = config["inputs"]
 output_dict = config["outputs"]
 ref_dict = config["refs"]
 snp_dict = config["snp"]
 bind_path = input_dict["bind_path"]
 
-fasta = ref_dict["fasta"]
-print(config["inputs"]["scRNAseq_dir"])
+
+if (ref_dict["genome"] == "hg19"):
+    fasta = ref_dict["hg19_fasta"]
+elif (ref_dict["genome"] == "hg38"):
+    fasta = ref_dict["hg38_fasta"]
+    fasta_lift = ref_dict["hg19_fasta"]
+else:
+    logger.info("Your genome entry in the refs group in the yaml was not valid. It was '" + ref_dict["genome"] + "' but should be hg19 or hg38. Quitting.\n\n")
+
+
 
 
 # Rule-specific arguments
@@ -37,7 +43,7 @@ reference_ancestry_predictions_dict = config["reference_ancestry_predictions"]
 
 
 ### Check that found the correct files and report each ###
-if os.path.exists(fasta):
+if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genome"] == "hg38" and os.path.exists(fasta) and os.path.exists(fasta_lift))):
 
     if os.path.exists(ref_dict["vcf"]):
 
@@ -138,9 +144,9 @@ if os.path.exists(fasta):
                             if  ref_dict["genome"] in ["hg19", "hg38"]:
                                 if ref_dict["genome"] == "hg38":
                                     if chr:
-                                        chain_cross = '/opt/hg38ToHg19.over.chain'
+                                        chain_cross = '/opt/ancestry_prediction_scRNAseq/refs/hg38ToHg19.over.chain'
                                     else:
-                                        chain_cross = '/opt/GRCh38_to_GRCh37.chain'
+                                        chain_cross = '/opt/ancestry_prediction_scRNAseq/refs/GRCh38_to_GRCh37.chain'
 
 
                                 # Import individual rules
@@ -161,7 +167,7 @@ if os.path.exists(fasta):
                                         reference_rules.append(output_dict["outdir"] + "/reference/pca_sex_checks_original/Ancestry_PCAs.png")
                                         reference_rules.append(output_dict["outdir"] + "/reference/pca_sex_checks_original/ancestry_assignments.tsv")
                                         reference_rules.append(expand(output_dict["outdir"] + "/{pool}/souporcell/Genotype_ID_key.txt", pool=samples.Pool))
-                                        reference_rules.append(output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref.png")
+                                        reference_rules.append(output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref_identified.png")
 
                                     else:
                                         logger.info("Could not find the provided snp vcf file at: '" + snp_dict["vcf"] + "'.")
@@ -198,6 +204,8 @@ if os.path.exists(fasta):
     else:
         logger.info("Could not find the provided reference vcf file at: '" + ref_dict["vcf"] + "'.\nExiting.")
 
+else:
+    logger.info("Could not find fasta file(s). Please check that you have provided the correct paths.\nExiting.")
 
 
 

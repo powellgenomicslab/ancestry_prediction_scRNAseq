@@ -66,7 +66,7 @@ rule reference_common_snps:
     threads: reference_ancestry_predictions_dict["reference_common_snps_threads"]
     params:
         bim_1000 = "/opt/1000G/all_phase3_filtered.pvar",
-        infile =  "/directflow/SCCGGroupShare/projects/himaro/snp_Imputation/data_imputation/second_Imputation/log_dir1/indiv_missingness/indiv_missingness",
+        infile =  output_dict["outdir"] + "/reference/reference",
         infile_1000g = "/opt/1000G/all_phase3_filtered",
         out = output_dict["outdir"] +  "/reference/common_snps/subset_data",
         out_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g",
@@ -293,8 +293,7 @@ rule reference_pca_projection_assign_original:
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_path"],
         outdir = output_dict["outdir"] + "/reference/pca_sex_checks_original/",
-        # script = "/opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/ancestry_prediction_from_scRNA-seq/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
+        script = "/opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.outdir} > {params.variables}
@@ -310,7 +309,7 @@ rule reference_souporcell_comparison:
         tsv = output_dict["outdir"] + "/reference/pca_sex_checks_original/ancestry_assignments.tsv",
         sc_data = expand(output_dict["outdir"] + "/{pool}/souporcell/pca_sex_checks_original/ancestry_assignments.tsv", pool=samples.Pool)
     output:
-        anc_fig = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref.png"
+        anc_fig = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref_identified.png"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_souporcell_comparison_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_souporcell_comparison_memory"]
@@ -320,15 +319,14 @@ rule reference_souporcell_comparison:
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_path"],
         outdir = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/",
-        # script = "/opt/ancestry_prediction_scRNAseq/scripts/compare_ref_seq_snp_ancestries.R",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/ancestry_prediction_from_scRNA-seq/ancestry_prediction_scRNAseq/scripts/compare_ref_seq_snp_ancestries.R",
+        script = "/opt/ancestry_prediction_scRNAseq/scripts/compare_ref_seq_snp_ancestries.R",
         datadir = output_dict["outdir"],
-        pools = samples.Pool
+        samples_file = input_dict["metadata_file"]
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.datadir} > {params.variables}
         singularity exec --bind {params.bind} {params.sif} echo {input.tsv} >> {params.variables}
         singularity exec --bind {params.bind} {params.sif} echo {params.outdir} >> {params.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.pools} >> {params.variables}
+        singularity exec --bind {params.bind} {params.sif} echo {params.samples_file} >> {params.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.variables}
         """

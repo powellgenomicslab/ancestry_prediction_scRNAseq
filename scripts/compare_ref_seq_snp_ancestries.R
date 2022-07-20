@@ -1,3 +1,6 @@
+#!/usr/bin/env Rscript
+.libPaths("/usr/local/lib/R/site-library")
+
 library(data.table)
 library(tidyverse)
 library(RColorBrewer)
@@ -10,11 +13,17 @@ library(grid)
 
 ### Set up directories ###
 args <- commandArgs(TRUE)
-arguments <- read.table(args, header = F, sep p= "\t")
+arguments <- read.table(args, header = F, sep = "\t")
 datadir <- arguments[1,]
 ref_predictions <- arguments[2,]
 outdir <- arguments[3,]
-pools <- c(arguments[4,])
+samples_file <- c(arguments[4,])
+
+
+print("Reading in samples dataframe.")
+samples <- fread(samples_file, sep = "\t")
+colnames(samples) <- c("Pool", "N")
+pools <- samples$Pool
 
 
 
@@ -25,8 +34,9 @@ ref_df <- fread(ref_predictions)
 
 ## Read in predictions ##
 ## Souporcell ##
+print("Reading in results.")
 souporcell_anc_list <- lapply(pools, function(pool){
-    fread(paste0(datadir, pool, "/souporcell/pca_sex_checks_original/ancestry_assignments.tsv"))
+    fread(paste0(datadir, "/", pool, "/souporcell/pca_sex_checks_original/ancestry_assignments.tsv"))
 })
 names(souporcell_anc_list) <- pools
 
@@ -43,7 +53,7 @@ names(souporcell_anc_list) <- pools
 
 ## read in cluster to individual keys ##
 souporcell_id_conversions <- lapply(pools, function(pool){
-    fread(paste0(datadir, pool, "/souporcell/Genotype_ID_key.txt"), sep = "\t")
+    fread(paste0(datadir, "/", pool, "/souporcell/Genotype_ID_key.txt"), sep = "\t")
 })
 names(souporcell_id_conversions) <- pools
 
@@ -59,20 +69,24 @@ souporcell_anc_list <- lapply(names(souporcell_anc_list), function(pool){
 
 ## combine all dataframes together ##
 ## Souporcell ##
+print("Updating data.")
 souporcell_anc <- do.call(rbind, souporcell_anc_list)
 
 souporcell_anc_sub <- souporcell_anc[,c("Genotype_ID", "Cluster_ID", "Pool", "AFR", "AMR", "EAS", "EUR", "SAS", "Final_Assignment")]
 colnames(souporcell_anc_sub) <- c("IID", "Cluster_ID", "Pool", "AFR", "AMR", "EAS", "EUR", "SAS", "seq_snp_ancestry")
-souporcell_anc_sub_joined <- merge(ref_df, souporcell_anc_sub, by = "IID", all = TRUE)
-souporcell_anc_sub_joined$seq_snp_ancestry <- ifelse(is.na(souporcell_anc_sub_joined$seq_snp_ancestry), "unidentified_in_pool", souporcell_anc_sub_joined$seq_snp_ancestry)
+
+print("Combining data with reference.")
+souporcell_anc_sub_joined <- merge(ref_df[,c("IID", "Final_Assignment")], souporcell_anc_sub, by = "IID", all = TRUE)
+colnames(souporcell_anc_sub_joined) <- gsub("Final_Assignment", "ref_snp_ancestry", colnames(souporcell_anc_sub_joined))
 
 souporcell_anc_sub_joined$Software <- "Souporcell"
-
+souporcell_anc_sub_joined$Annotation <- ifelse(as.character(souporcell_anc_sub_joined$seq_snp_ancestry) == as.character(souporcell_anc_sub_joined$ref_snp_ancestry), "Correct", "Incorrect")
 
 anc_joined <- souporcell_anc_sub_joined
 
 
-anc_joined$seq_snp_ancestry <- factor(anc_joined$seq_snp_ancestry, levels = c("EUR", "EAS", "AMR", "SAS", "AFR"))
+anc_joined$seq_snp_ancestry <- ifelse(is.na(anc_joined$seq_snp_ancestry), "unidentified_in_pool", as.character(souporcell_anc_sub_joined$seq_snp_ancestry))
+anc_joined$seq_snp_ancestry <- factor(anc_joined$seq_snp_ancestry, levels = c("EUR", "EAS", "AMR", "SAS", "AFR", "unidentified_in_pool"))
 anc_joined$ref_snp_ancestry <- factor(anc_joined$ref_snp_ancestry, levels = c("EUR", "EAS", "AMR", "SAS", "AFR"))
 
 
@@ -83,15 +97,15 @@ fwrite(anc_joined, paste0(outdir, "snp_ancestry_predictions.tsv"), sep = "\t")
 colors <- c(brewer.pal(5, "Dark2"), "grey70")
 names(colors) = c("EUR", "EAS", "AMR", "SAS", "AFR","unidentified_in_pool")
 
-ref_plot <- ggplot(unique(anc_joined[,c("IID", "Pool", "ref_snp_ancestry")]), aes(ref_snp_ancestry, fill = ref_snp_ancestry)) +
+ref_plot <- ggplot(unique(anc_joined[!is.na(ref_snp_ancestry),c("IID", "Pool", "ref_snp_ancestry")]), aes(ref_snp_ancestry, fill = ref_snp_ancestry)) +
     geom_bar() +
     theme_classic() +
-    scale_fill_manual(values = colors)+
+    scale_fill_manual(values = colors[1:5])+
     stat_count(geom = "text", colour = "black", size = 3.5,
         aes(label = ..count..),vjust=0) +
         xlab("Ancestry")
 
-ggsave(ref_plot, filename = paste0(outdir, "reference_ancestry_numbers.png"), width =3, height = 3)
+ggsave(ref_plot, filename = paste0(outdir, "reference_ancestry_numbers.png"), width =2.5 + length(unique(unique(anc_joined[!is.na(ref_snp_ancestry),c("IID", "Pool", "ref_snp_ancestry")])$ref_snp_ancestry))*0.25, height = 3)
 
 
 
@@ -102,18 +116,35 @@ seq_plot_both_correct <- ggplot(anc_joined, aes(seq_snp_ancestry, fill = Annotat
     geom_bar() +
     theme_classic() +
     scale_fill_manual(values = correct_colors) +
-    facet_grid(~Software) +
     stat_count(geom = "text", colour = "black", size = 3.5,
-        aes(label = ..count..),vjust=0)
+        aes(label = ..count..),vjust=0) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+            axis.title.x=element_blank())
 
-ggsave(seq_plot_both_correct, filename = paste0(outdir, "predicted_ancestry_numbers_correct.png"), width = 7.5, height = 3)
+ggsave(seq_plot_both_correct, filename = paste0(outdir, "predicted_ancestry_numbers_correct.png"), width =2 + length(unique(anc_joined$seq_snp_ancestry))*0.25, height = 4)
 
+
+seq_plot_both_correct_identified <- ggplot(anc_joined[seq_snp_ancestry != "unidentified_in_pool"], aes(seq_snp_ancestry, fill = Annotation)) +
+    geom_bar() +
+    theme_classic() +
+    scale_fill_manual(values = correct_colors) +
+    stat_count(geom = "text", colour = "black", size = 3.5,
+        aes(label = ..count..),vjust=0) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+            axis.title.x=element_blank())
+
+ggsave(seq_plot_both_correct_identified, filename = paste0(outdir, "predicted_ancestry_numbers_correct_identified.png"), width =2 + length(unique(anc_joined[seq_snp_ancestry != "unidentified_in_pool"]$seq_snp_ancestry))*0.25, height = 4)
+
+
+
+
+anc_joined_noNA <- anc_joined[!is.na(Pool) & !is.na(IID)]
 
 
 stat_metrics <- list()
 
-for (soft in unique(anc_joined$Software)){
-    temp <- anc_joined[Software == soft]
+for (soft in unique(anc_joined_noNA$Software)){
+    temp <- anc_joined_noNA[Software == soft]
 
     ##### Calculate TPR, TNR, FPR, FNR, accuracy, balanced accuracy, MCC #####
     stat_metrics[[soft]] <- data.table(Group = unique(c(as.character(temp$seq_snp_ancestry), as.character(temp$ref_snp_ancestry))), 
@@ -169,23 +200,23 @@ stat_metrics_long_dt$Expected_Direction <- ifelse(stat_metrics_long_dt$variable 
 stat_metrics_long_dt$Group <- factor(stat_metrics_long_dt$Group, levels = c("EUR", "EAS", "AMR", "SAS", "AFR"))
 
 
-stat_heat <- ggplot(stat_metrics_long_dt[!(variable %in% c("TP", "TN", "FP", "FN"))], aes(Group, variable, fill = value)) +
+stat_heat <- ggplot(stat_metrics_long_dt[!(variable %in% c("TP", "TN", "FP", "FN")) & !is.na(Group)], aes(Group, variable, fill = value)) +
     geom_tile() +
     theme_classic() +
     geom_text(aes(label=round(value, 2)), color = "white", size = 3) +
     scale_fill_continuous_sequential(palette = "Terrain 2", na.value="white") +
-    facet_grid(Expected_Direction~Software, scales = "free_y", space='free') +
+    facet_grid(vars(Expected_Direction), scales = "free_y", space='free') +
     xlab("Ancestry")
 
 
-ggsave(stat_heat, filename = paste0(outdir, "statistics_heatmap.png"), width = 7.5, height = 3.5)
+ggsave(stat_heat, filename = paste0(outdir, "statistics_heatmap.png"), width = 4 + length(unique(stat_metrics_long_dt[!(variable %in% c("TP", "TN", "FP", "FN")) & !is.na(Group)]$Group))*0.25, height = 3.5)
 
 
 
-combined_plot <- cowplot::plot_grid(seq_plot_both_correct + theme(plot.title = element_text(hjust = 0.5),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + ggtitle ("MoST Sample Ancestry Annotations"), stat_heat + theme(strip.background.x = element_blank(),strip.text.x = element_blank()),
+combined_plot <- cowplot::plot_grid(seq_plot_both_correct_identified + theme(plot.title = element_text(hjust = 0.5),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()), stat_heat + theme(strip.background.x = element_blank(),strip.text.x = element_blank()),
           ncol = 1, nrow = 2, align = "v", axis = "l", rel_heights = c(1,0.75))
 
-ggsave(combined_plot, filename = paste0(outdir, "predicted_numbers_statistics_heatmap_combined.png"), width = 7, height = 5)
+ggsave(combined_plot, filename = paste0(outdir, "predicted_numbers_statistics_heatmap_combined.png"), width = 3 + length(unique(stat_metrics_long_dt[!(variable %in% c("TP", "TN", "FP", "FN")) & !is.na(Group)]$Group))*0.25, height = 5)
 
 
 ##### Plot the incorrect vs correct per reference group predictions #####
@@ -226,11 +257,11 @@ anc_joined_long_ref <- rbind(anc_joined_long[,c("IID", "seq_snp_ancestry", "ref_
 ### reference annotation was upadted by new method of annotation so need to update group ###
 anc_joined_long_ref$ref_snp_ancestry <- factor(anc_joined_long_ref$ref_snp_ancestry, levels = c("EUR", "EAS", "AMR", "SAS", "AFR"))
 
-anc_joined_long_ref$Annotation <- ifelse(anc_joined_long_ref$ref_snp_ancestry == anc_joined_long_ref$seq_snp_ancestry, "Correct", "Incorrect")
+anc_joined_long_ref$Annotation <- ifelse(as.character(anc_joined_long_ref$ref_snp_ancestry) == as.character(anc_joined_long_ref$seq_snp_ancestry), "Correct", "Incorrect")
 
 
 ### Make figure of stacked combined with ref ### 
-p_probabilities_ref <- ggplot(anc_joined_long_ref, aes(paste0(gsub("-\\d", "", IID), "-", gsub("RZ731_", "", Pool)), value, fill = variable)) +
+p_probabilities_ref <- ggplot(anc_joined_long_ref, aes(paste0(IID, "-",Pool), value, fill = variable)) +
     geom_bar(position = "stack", stat = "identity") +
     theme_classic() +
     facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freemuxlet", "Freemuxlet\nImpute", "Souporcell", "Souporcell\nImpute")) ~ ref_snp_ancestry, scales="free", space="free_x") +
@@ -263,4 +294,45 @@ for (i in 1:length(strip_bg_gpath_ref)){
 }
 
 ggsave(g_ref, filename = paste0(outdir,"assignments_probabilities_w_ref.png"), width = 10, height = 7)
+
+
+
+
+
+
+
+### Make figure of stacked combined with ref ### 
+p_probabilities_ref_noNA <- ggplot(anc_joined_long_ref[!is.na(Pool) & !is.na(IID)], aes(paste0(IID, "-",Pool), value, fill = variable)) +
+    geom_bar(position = "stack", stat = "identity") +
+    theme_classic() +
+    facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freemuxlet", "Freemuxlet\nImpute", "Souporcell", "Souporcell\nImpute")) ~ ref_snp_ancestry, scales="free", space="free_x") +
+    scale_fill_manual(values = colors[1:5]) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+            axis.title.x=element_blank()) +
+    geom_text(aes(label = ifelse(Annotation == "Incorrect", "X", ""), y = 0.9),  vjust = 1) +
+    ylab("Probability")
+
+# Generate the ggplot2 plot grob
+g_ref_noNA <- grid.force(ggplotGrob(p_probabilities_ref_noNA))
+# Get the names of grobs and their gPaths into a data.frame structure
+grobs_df_ref_noNA <- do.call(cbind.data.frame, grid.ls(g_ref_noNA, print = FALSE))
+# Build optimal gPaths that will be later used to identify grobs and edit them
+grobs_df_ref_noNA$gPath_full <- paste(grobs_df_ref_noNA$gPath, grobs_df_ref_noNA$name, sep = "::")
+grobs_df_ref_noNA$gPath_full <- gsub(pattern = "layout::", 
+                            replacement = "", 
+                            x = grobs_df_ref_noNA$gPath_full, 
+                            fixed = TRUE)
+
+
+# Get the gPaths of the strip background grobs
+strip_bg_gpath_ref_noNA <- grobs_df_ref_noNA$gPath_full[grepl(pattern = ".*strip\\.background.x.*", 
+                                            x = grobs_df_ref_noNA$gPath_full)]
+
+
+# Edit the grobs
+for (i in 1:length(strip_bg_gpath_ref_noNA)){
+  g_ref_noNA <- editGrob(grob = g_ref_noNA, gPath = strip_bg_gpath_ref_noNA[i], gp = gpar(fill = colors[levels(anc_joined_long_ref[!is.na(Pool) & !is.na(IID)]$ref_snp_ancestry)[i]]))
+}
+
+ggsave(g_ref_noNA, filename = paste0(outdir,"assignments_probabilities_w_ref_identified.png"), width = 10, height = 7)
 
