@@ -27,65 +27,56 @@ pools <- samples$Pool
 
 
 
+individuals <- lapply(pools, function(pool){
+    dir(paste0(datadir,pool), pattern = "individual")
+})
+names(individuals) <- pools
+
+
+
 ### Read in reference SNP-based ancestry predictions ###
 ref_df <- fread(ref_predictions)
 
 
 
 ## Read in predictions ##
-## Souporcell ##
 print("Reading in results.")
-souporcell_anc_list <- lapply(pools, function(pool){
-    fread(paste0(datadir, "/", pool, "/souporcell/pca_sex_checks_original/ancestry_assignments.tsv"))
+
+freebayes_anc_list <- lapply(pools, function(pool){
+    tmp <- lapply(individuals[[pool]], function(indiv){
+        if (file.exists(paste0(datadir, pool,"/",indiv, "/freebayes/pca_sex_checks_original/ancestry_assignments.tsv"))){
+            tmp2 <- fread(paste0(datadir, pool,"/",indiv, "/freebayes/pca_sex_checks_original/ancestry_assignments.tsv"))
+            tmp2$Pool <- pool
+            tmp2$IID <- gsub("individual_", "", indiv)
+            return(tmp2)
+        } else {
+            NULL
+        }
+    })
+    names(tmp) <- individuals[[pool]]
+    return(tmp)
 })
-names(souporcell_anc_list) <- pools
-
-
-## Add pool name to dataframes ##
-## Souporcell ##
-souporcell_anc_list <- lapply(names(souporcell_anc_list), function(pool){
-    souporcell_anc_list[[pool]]$Pool <- pool
-    souporcell_anc_list[[pool]]$Software <- "souporcell"
-    return(souporcell_anc_list[[pool]])
-})
-names(souporcell_anc_list) <- pools
-
-
-## read in cluster to individual keys ##
-souporcell_id_conversions <- lapply(pools, function(pool){
-    fread(paste0(datadir, "/", pool, "/souporcell/Genotype_ID_key.txt"), sep = "\t")
-})
-names(souporcell_id_conversions) <- pools
-
-
-## Add IDs to ancestry assignments ##
-## Souporcell ##
-souporcell_anc_list <- lapply(names(souporcell_anc_list), function(pool){
-    souporcell_anc_list[[pool]]$IID <- gsub("donor", "", souporcell_anc_list[[pool]]$IID)
-    souporcell_anc_list[[pool]] <- data.table(souporcell_id_conversions[[pool]])[souporcell_anc_list[[pool]], on = c("Cluster_ID" = "IID")]
-    return(souporcell_anc_list[[pool]])
-})
+names(freebayes_anc_list) <- pools
 
 
 ## combine all dataframes together ##
-## Souporcell ##
 print("Updating data.")
-souporcell_anc <- do.call(rbind, souporcell_anc_list)
+freebayes_anc <- do.call(rbind, lapply(freebayes_anc_list, function(x) do.call(rbind, x)))
 
-souporcell_anc_sub <- souporcell_anc[,c("Genotype_ID", "Cluster_ID", "Pool", "AFR", "AMR", "EAS", "EUR", "SAS", "Final_Assignment")]
-colnames(souporcell_anc_sub) <- c("IID", "Cluster_ID", "Pool", "AFR", "AMR", "EAS", "EUR", "SAS", "seq_snp_ancestry")
+
+freebayes_anc_sub <- freebayes_anc[,c("IID", "Pool", "AFR", "AMR", "EAS", "EUR", "SAS", "Final_Assignment")]
+colnames(freebayes_anc_sub) <- c("IID", "Pool", "AFR", "AMR", "EAS", "EUR", "SAS", "seq_snp_ancestry")
+
 
 print("Combining data with reference.")
-souporcell_anc_sub_joined <- merge(ref_df[,c("IID", "Final_Assignment")], souporcell_anc_sub, by = "IID", all = TRUE)
-colnames(souporcell_anc_sub_joined) <- gsub("Final_Assignment", "ref_snp_ancestry", colnames(souporcell_anc_sub_joined))
+anc_joined <- merge(ref_df[,c("IID", "Final_Assignment")], freebayes_anc_sub, by = "IID", all = TRUE)
+colnames(anc_joined) <- gsub("Final_Assignment", "ref_snp_ancestry", colnames(anc_joined))
 
-souporcell_anc_sub_joined$Software <- "Souporcell"
-souporcell_anc_sub_joined$Annotation <- ifelse(as.character(souporcell_anc_sub_joined$seq_snp_ancestry) == as.character(souporcell_anc_sub_joined$ref_snp_ancestry), "Correct", "Incorrect")
-
-anc_joined <- souporcell_anc_sub_joined
+anc_joined$Software <- "Freebayes"
+anc_joined$Annotation <- ifelse(as.character(anc_joined$seq_snp_ancestry) == as.character(anc_joined$ref_snp_ancestry), "Correct", "Incorrect")
 
 
-anc_joined$seq_snp_ancestry <- ifelse(is.na(anc_joined$seq_snp_ancestry), "unidentified_in_pool", as.character(souporcell_anc_sub_joined$seq_snp_ancestry))
+anc_joined$seq_snp_ancestry <- ifelse(is.na(anc_joined$seq_snp_ancestry), "unidentified_in_pool", as.character(anc_joined$seq_snp_ancestry))
 anc_joined$seq_snp_ancestry <- factor(anc_joined$seq_snp_ancestry, levels = c("EUR", "EAS", "AMR", "SAS", "AFR", "unidentified_in_pool"))
 anc_joined$ref_snp_ancestry <- factor(anc_joined$ref_snp_ancestry, levels = c("EUR", "EAS", "AMR", "SAS", "AFR"))
 
@@ -264,7 +255,7 @@ anc_joined_long_ref$Annotation <- ifelse(as.character(anc_joined_long_ref$ref_sn
 p_probabilities_ref <- ggplot(anc_joined_long_ref, aes(paste0(IID, "-",Pool), value, fill = variable)) +
     geom_bar(position = "stack", stat = "identity") +
     theme_classic() +
-    facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freemuxlet", "Freemuxlet\nImpute", "Souporcell", "Souporcell\nImpute")) ~ ref_snp_ancestry, scales="free", space="free_x") +
+    facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freebayes")) ~ ref_snp_ancestry, scales="free", space="free_x") +
     scale_fill_manual(values = colors[1:5]) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
             axis.title.x=element_blank()) +
@@ -305,7 +296,7 @@ ggsave(g_ref, filename = paste0(outdir,"assignments_probabilities_w_ref.png"), w
 p_probabilities_ref_noNA <- ggplot(anc_joined_long_ref[!is.na(Pool) & !is.na(IID)], aes(paste0(IID, "-",Pool), value, fill = variable)) +
     geom_bar(position = "stack", stat = "identity") +
     theme_classic() +
-    facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freemuxlet", "Freemuxlet\nImpute", "Souporcell", "Souporcell\nImpute")) ~ ref_snp_ancestry, scales="free", space="free_x") +
+    facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freebayes")) ~ ref_snp_ancestry, scales="free", space="free_x") +
     scale_fill_manual(values = colors[1:5]) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
             axis.title.x=element_blank()) +
