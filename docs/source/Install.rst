@@ -6,6 +6,9 @@ This pipeline to estimate genetic ancestry from scRNA-seq data has been built in
 This should provide continuity to execution of this pipeline across different computational systems.
 We're hoping that installation and pipeline execution will be relatively painless as well.
 
+
+Singularity Image
+--------------------
 The only thing to note before you download this image is that the image is **~6.5Gb** so, depending on the internet speed, it will take **~15-30 min to download**.
 
 To download the singularity image:
@@ -99,6 +102,57 @@ If you run into any issues with downloading the image or any issue with running 
   |                            +---------------------------+-------------------------------+
   |                            | ``scipy``                 | v1.5.4                        |
   +----------------------------+---------------------------+-------------------------------+
+
+
+
+.. _common_snps:
+
+Common SNP locations
+------------------------
+
+You will need a list of common SNPs to indicate where freebayes should search for variants in the bam.
+We have provided common SNP location bed files that can be used for calling SNPs with freebayes filtered by minor allele frequency.
+The files contain SNPs on either hg19/GRCh37 or hg38/GRCh38 and either have 'chr' encoding or not
+
+They are available to be downloaded with the links here:
+
++----------------------+------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Genome               | .. centered:: Chr Encoding   | .. centered:: vcf File                                                                                                                                            | .. centered:: md5sum File                                                                                                                                                 |
+|                      |                              |                                                                                                                                                                   |                                                                                                                                                                           |
+|                      |                              |                                                                                                                                                                   |                                                                                                                                                                           |
++======================+==============================+===================================================================================================================================================================+===========================================================================================================================================================================+
+| GRCh37               |  .. centered:: No 'chr'      | .. centered:: `GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf <https://www.dropbox.com/s/rce452zoawd0eee/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf>`__             | .. centered:: `GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5 <https://www.dropbox.com/s/jrfb287hux6ehtg/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5>`__             |
+|                      +------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                      | .. centered:: 'chr' encoding | .. centered:: `GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf <https://www.dropbox.com/s/qrn6df1i1wxukxn/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf>`__ | .. centered:: `GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf.md5 <https://www.dropbox.com/s/on47saot3d2cgij/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf.md5>`__ |
++----------------------+------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GRCh38               |  .. centered:: No 'chr'      | .. centered:: `GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.vcf <https://www.dropbox.com/s/4nmm344g4j7pou4/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.vcf>`__             | .. centered:: `GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5 <https://www.dropbox.com/s/izwp3l8oqwrt9dn/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5>`__             |
+|                      +------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                      | .. centered:: 'chr' encoding | .. centered:: `GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf <https://www.dropbox.com/s/ycfxs407sqgoori/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf>`__ | .. centered:: `GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf.md5 <https://www.dropbox.com/s/77opxja1cgaq994/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.vcf.md5>`__ |
++----------------------+------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+
+You can either just click the link for the file you want to download or you can right click > "Copy Link Address" and use wget on the command line.
+For example, hg19/GRCh37 without 'chr' encoding:
+
+.. code-block:: bash
+
+  wget https://www.dropbox.com/s/rce452zoawd0eee/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf
+  wget https://www.dropbox.com/s/jrfb287hux6ehtg/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5
+
+
+Then check that the md5sum matches the downloaded md5sum:
+
+.. code-block:: bash
+
+  md5sum GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf > downloaded_GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5
+  diff -s GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5 downloaded_GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5
+
+
+If everything was downloaded correctly, that command should report:
+
+.. code-block:: bash
+
+  Files GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5 and downloaded_GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.vcf.md5 are identical
 
 
 

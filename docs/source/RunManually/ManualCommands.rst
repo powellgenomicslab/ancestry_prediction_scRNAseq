@@ -139,26 +139,20 @@ The ``$BAM`` will be either your original bam file (if did not subset by individ
 .. admonition:: :octicon:`stopwatch` Expected Timing
   :class: seealso
 
-  ~ 12 and 36 hours with 8 to 16 threads with 4-16G each.
+  ~12 and 36 hours with 8 to 16 threads with 4-16G each.
   The time for this step will vary greatly depending on the number of reads per capture captured and the number of cells per individual.
 
 
 Freebayes will be used to call SNP genotypes from the bam file.
 
 You will need a list of common SNPs to indicate where freebayes should search for variants in the bam.
-We have provided common SNP location bed files in the Singularity image that can be used for calling SNPs with freebayes:
-
-- ``/opt/ancestry_prediction_scRNAseq/refs/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.bed`` - Common SNPs filtered for 1% MAF and overlapping genes on hg19/GRCh37 reference with 'chr' chromosome encoding (`i.e.` chr1 instead of 1)
-
-- ``/opt/ancestry_prediction_scRNAseq/refs/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.bed`` - Common SNPs filtered for 1% MAF and overlapping genes on hg19/GRCh37 reference without 'chr' chromosome encoding (`i.e.` 1 instead of chr1)
-
-- ``/opt/ancestry_prediction_scRNAseq/refs/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.bed`` - Common SNPs filtered for 1% MAF and overlapping genes on hg19/GRCh37 reference with 'chr' chromosome encoding (`i.e.` chr1 instead of 1)
-
-- ``/opt/ancestry_prediction_scRNAseq/refs/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.bed`` - Common SNPs filtered for 1% MAF and overlapping genes on hg19/GRCh37 reference without 'chr' chromosome encoding (`i.e.` 1 instead of chr1)
+We have provided common SNP location bed files that can be used for calling SNPs with freebayes filtered by minor allele frequency.
+The files contain SNPs on either hg19/GRCh37 or hg38/GRCh38 and either have 'chr' encoding or not
 
 
 
-Define some variables to execute CrossMap to lift the data from hg38 to hg19
+Define some variables to execute CrossMap to lift the data from hg38 to hg19.
+The ``$TARGETS`` is the :ref:`common SNP location <common_snps>` file in the :doc:`../Install` documentation.
 
 .. code-block:: bash
 
@@ -535,4 +529,23 @@ Lastly, we can predict sample SNP-based ancestry and produce some figures for vi
   singularity exec --bind $BIND $SIF echo $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs_projected.sscore >> $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
   singularity exec --bind $BIND $SIF echo $OUTDIR/freebayes/common_snps/subset_1000g.psam >> $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
   singularity exec --bind $BIND $SIF Rscript /opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
+
+
+Results
+----------
+After running the final step, you should have the following results directories:
+
+.. code-block:: bash
+
+
+
+- The ``Ancestry_PCAs.png`` figure shows the 1000G individual locations in PC space compared to the individuals in each pool. For example:
+
+  .. figure:: _figures/
+      :align: right
+      :figwidth: 300px
+    
+
+- The ``ancestry_assignments.tsv`` file has the annotations and probabilities for each pool. For example:
+
 

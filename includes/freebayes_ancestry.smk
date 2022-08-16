@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 shell.executable('bash')
 
-
+from itertools import repeat
 
 
 checkpoint subset_bam:
@@ -21,10 +21,9 @@ checkpoint subset_bam:
         bind = input_dict["bind_path"],
     shell:
         """
-        /directflow/SCCGGroupShare/projects/DrewNeavin/software/anaconda3/envs/sinto/bin/sinto filterbarcodes -b {input.bam} -c {input.cells} --barcodetag {params.barcode_tag} --outdir {params.out} --nproc {threads}
+        singularity exec --bind {params.bind} {params.sif} sinto filterbarcodes -b {input.bam} -c {input.cells} --barcodetag {params.barcode_tag} --outdir {params.out} --nproc {threads}
         echo "done" > {output}
         """
-        # singularity exec --bind {params.bind} {params.sif} sinto filterbarcodes -b {input.bam} -c {input.cells} --barcodetag {params.barcode_tag} --outdir {params.out} --nproc {threads}
 
 
 
@@ -47,35 +46,13 @@ rule index:
         """
 
 
-
-rule parallel_freebayes_regions:
-    input:
-        input_dict["metadata_file"]
-    output:
-        regions = output_dict["outdir"] + "/freebayes_regions_file"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["parallel_freebayes_regions_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["parallel_freebayes_regions_memory"]
-    threads: freebayes_ancestry_dict["parallel_freebayes_regions_threads"]
-    params:
-        fasta = fasta,
-        bind = input_dict["bind_path"],
-        sif = input_dict["singularity_image"],
-        regions = freebayes_ancestry_dict["parallel_freebayes_regions_N"]
-    shell:
-        """
-        export TMPDIR=/tmp
-        singularity exec --bind {params.bind},/tmp {params.sif} fasta_generate_regions.py {params.fasta}.fai {params.regions} > {output.regions}
-        """
-
-
 rule freebayes:
     input:
         bai = output_dict["outdir"] + "/{pool}/bams/{individual}.bam.bai",
         bam_done = output_dict["outdir"] + "/{pool}/bams/subset_bam.done",
-        regions = output_dict["outdir"] + "/freebayes_regions_file"
+        bed = bed_dir + "/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_{chr}.bed"
     output:
-        output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes.vcf"
+        temp(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes_{chr}.vcf")
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"]
@@ -85,11 +62,28 @@ rule freebayes:
         sif = input_dict["singularity_image"],
         fasta = fasta,
         bind = input_dict["bind_path"],
-        bed = bed
     shell:
         """
-        export TMPDIR=/tmp
-        singularity exec --bind {params.bind},/tmp {params.sif} freebayes-parallel {input.regions} {threads} -f {params.fasta} -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets {params.bed} {params.bam} > {output}
+        singularity exec --bind {params.bind} {params.sif} freebayes -f {params.fasta} -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets {input.bed} {params.bam} > {output}
+        """
+
+rule freebayes_merge:
+    input:
+        lambda wildcards: expand(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes_{chr}.vcf", zip, pool = pd.Series(samples.Pool.tolist() * 22), individual = pd.Series(samples.Individual.tolist() * 22), chr = [x for item in chrs for x in repeat(item, samples.shape[0])])
+    output:
+        output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes.vcf"
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"]
+    threads: freebayes_ancestry_dict["freebayes_threads"]
+    params:
+        sif = input_dict["singularity_image"],
+        fasta = fasta,
+        bind = input_dict["bind_path"],
+        infiles = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes_*.vcf"
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} bcftools concat -Ov {params.infiles} > {output}
         """
 
 
@@ -97,11 +91,9 @@ rule freebayes:
 if ref_dict["genome"] == "hg38":
     rule freebayes_update_vcf:
         input:
-            freebayes = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes.vcf"
+            vcf = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes.vcf"
         output:
-            vcf = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes_updated_ids.vcf",
             vcf19 = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes_hg19.vcf",
-            ids = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/updated_ids.tsv"
         resources:
             mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_update_vcf_memory"],
             disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_update_vcf_memory"]
@@ -113,17 +105,15 @@ if ref_dict["genome"] == "hg38":
             chain_crossmap = chain_cross
         shell:
             """
-            singularity exec --bind {params.bind} {params.sif} CrossMap.py vcf {params.chain_crossmap} {output.vcf} {params.fasta} {output.vcf19}
+            singularity exec --bind {params.bind} {params.sif} CrossMap.py vcf {params.chain_crossmap} {input.vcf} {params.fasta} {output.vcf19}
             """
 
 else: 
     rule freebayes_update_vcf:
         input:
-            freebayes = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes.vcf"
+            vcf = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes.vcf"
         output:
-            vcf = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes_updated_ids.vcf",
             vcf19 = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes_hg19.vcf",
-            ids = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/updated_ids.tsv"
         resources:
             mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_update_vcf_memory"],
             disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_update_vcf_memory"]
@@ -133,7 +123,7 @@ else:
             bind = input_dict["bind_path"]
         shell:
             """
-            singularity exec --bind {params.bind} {params.sif} cp {output.vcf} {output.vcf19}
+            singularity exec --bind {params.bind} {params.sif} cp {input.vcf} {output.vcf19}
             """
 
 
@@ -154,7 +144,7 @@ rule freebayes_vcf2plink:
         freebayes = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/freebayes"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --vcf {input.freebayes} --make-pgen --out {params.freebayes} --max-alleles 2
+        singularity exec --bind {params.bind} {params.sif} plink2 --vcf {input.freebayes} --make-pgen --sort-vars --out {params.freebayes} --max-alleles 2
         singularity exec --bind {params.bind} {params.sif} cp {params.freebayes}.pvar {params.freebayes}.pvar_original
         singularity exec --bind {params.bind} {params.sif} sed -i 's/^chr//g' {params.freebayes}.pvar
         singularity exec --bind {params.bind} {params.sif} grep "#" {params.freebayes}.pvar > {params.freebayes}_tmp.pvar
@@ -204,8 +194,7 @@ rule common_snps_across_pools:
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_path"],
         samples_file = input_dict["metadata_file"],
-        # script = "/opt/ancestry_prediction_scRNAseq/scripts/common_snps.R",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/ancestry_prediction_from_scRNA-seq/ancestry_prediction_scRNAseq/scripts/common_snps.R",
+        script = "/opt/ancestry_prediction_scRNAseq/scripts/common_snps.R",
         outdir = output_dict["outdir"]
     shell:
         """
@@ -239,8 +228,7 @@ rule subset_common_snps:
         out_1000g = output_dict["outdir"] +  "/{pool}/individual_{individual}/freebayes/common_snps/subset_1000g",
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_path"],
-        # script = "/opt/ancestry_prediction_scRNAseq/scripts/subset_1000g_snps.R",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/ancestry_prediction_from_scRNA-seq/ancestry_prediction_scRNAseq/scripts/subset_1000g_snps.R",
+        script = "/opt/ancestry_prediction_scRNAseq/scripts/subset_1000g_snps.R",
         outdir = output_dict["outdir"]
     shell:
         """
@@ -454,7 +442,7 @@ rule freebayes_pca_projection_assign_original:
         projected_1000g_scores = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_projection/subset_pruned_1000g_pcs_projected.sscore",
         fam_1000g = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/common_snps/subset_1000g.psam",
     output:
-        anc_fig = report(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/Ancestry_PCAs.png", category = "PCA Cluster", caption = "ancestry_pca.rst"),
+        anc_fig = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/Ancestry_PCAs.png",
         tsv = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/ancestry_assignments.tsv"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_pca_projection_assign_original_memory"],
@@ -465,8 +453,7 @@ rule freebayes_pca_projection_assign_original:
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_path"],
         outdir = output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/",
-        # script = "/opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
-        script = "/directflow/SCCGGroupShare/projects/DrewNeavin/ancestry_prediction_from_scRNA-seq/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
+        script = "/opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R",
     shell:
         """
         singularity exec --bind {params.bind} {params.sif} echo {params.outdir} > {params.variables}
@@ -474,4 +461,26 @@ rule freebayes_pca_projection_assign_original:
         singularity exec --bind {params.bind} {params.sif} echo {input.projected_1000g_scores} >> {params.variables}
         singularity exec --bind {params.bind} {params.sif} echo {input.fam_1000g} >> {params.variables}
         singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.variables}
+        """
+
+
+
+rule freebayes_combine_results:
+    input:
+        expand(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual)
+    output:
+        output_dict["outdir"] + "/ancestry_assignments.tsv"
+    resources:
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_pca_projection_assign_original_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_pca_projection_assign_original_memory"]
+    threads: freebayes_ancestry_dict["freebayes_pca_projection_assign_original_threads"]
+    params:
+        sif = input_dict["singularity_image"],
+        bind = input_dict["bind_path"],
+        outdir = output_dict["outdir"],
+        script = "/opt/ancestry_prediction_scRNAseq/scripts/Combine_results.R",
+        meta = input_dict["metadata_file"]
+    shell:
+        """
+        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {params.outdir} {params.meta}
         """

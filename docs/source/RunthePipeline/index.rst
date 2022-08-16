@@ -10,7 +10,9 @@ To run your dataset(s) manually, procded to the :doc:`PreparingYaml` documentati
    :hidden:
 
    PreparingYaml
-
+   Pipeline
+   Results
+   SubmissionExamples
 
 
 

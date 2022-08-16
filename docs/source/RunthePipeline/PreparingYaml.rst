@@ -9,6 +9,8 @@ The following sections help transfer these files to your local system and provid
 
 Image Setup
 --------------
+:bdg-success-line:`Required`
+
 To get files from the Singularity image onto your system, simply execute:
 
 .. code-block:: bash
@@ -42,6 +44,7 @@ We have included a yaml (``snakemake.yaml``) to generate a conda environment tha
 
 Install Snakemake
 -----------------------------------------
+:bdg-success-line:`Required`
 
 You will need snakemake to run the pipeline. 
 We highly recommend using the conda environment that we have generated as it has all the required dependencies.
@@ -69,6 +72,7 @@ We suggest copying this file to a new filename and editing the new one.
 
 Required User Input
 ^^^^^^^^^^^^^^^^^^^^^^
+:bdg-success-line:`Required`
 
 The first section of the ``ancestry_prediction_scRNAseq.yaml`` file will require user input:
  
@@ -130,6 +134,7 @@ Here is a more detailed explanation of each entry:
 
 Reference-Based Ancestry Predictions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:bdg-primary-line:`Optional`
 
 We also provide the functionality to predict individual ancestries from reference SNP genotypes from microarrays or whole exome or genome sequencing data.
 As part of this, the pipeline will provide comparisons of the predictions between the reference and single cell data.

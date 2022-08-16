@@ -307,7 +307,7 @@ rule reference_pca_projection_assign_original:
 rule reference_souporcell_comparison:
     input:
         tsv = output_dict["outdir"] + "/reference/pca_sex_checks_original/ancestry_assignments.tsv",
-        sc_data = expand(output_dict["outdir"] + "/{pool}/souporcell/pca_sex_checks_original/ancestry_assignments.tsv", pool=samples.Pool)
+        sc_data = expand(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual)
     output:
         anc_fig = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref_identified.png"
     resources:

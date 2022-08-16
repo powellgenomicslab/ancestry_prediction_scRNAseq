@@ -46,8 +46,8 @@ freebayes_ancestry:
   parallel_freebayes_regions_N: 100000 ## Number of regions to make for freebayes parallel
 
   ### Following options for freebayes execution: freebayes_pipeline.py -i {input.bam} -b {input.barcodes} -f {params.fasta} -t {threads} -o {params.out} -k {params.N} --common_variants {input.snps}
-  freebayes_memory: 4 ## used for both memory and disk allocation
-  freebayes_threads: 36
+  freebayes_memory: 8 ## used for both memory and disk allocation
+  freebayes_threads: 1
 
   ### Following options for lifting freebayes vcf results to hg19 (for ancestry prediction)
   freebayes_update_vcf_memory: 4 ## used for both memory and disk allocation
@@ -58,38 +58,46 @@ freebayes_ancestry:
   freebayes_vcf2plink_threads: 2
 
   ### Following options for identifying common snps between data and 1000G reference
-  freebayes_common_snps_memory: 24 ## used for both memory and disk allocation
+  freebayes_common_snps_memory: 12 ## used for both memory and disk allocation
   freebayes_common_snps_threads: 1
 
+  ### Following options for identifying common snps between pools in your dataset
+  common_snps_across_pools_memory: 12 ## used for both memory and disk allocation
+  common_snps_across_poolss_threads: 2
+
+  ### Following options for subsetting data by SNPs provided across the different pools, sites and datasets
+  subset_common_snps_memory: 12 ## used for both memory and disk allocation
+  subset_common_snps_threads: 1
+
   ### Following options for pruning 1000G data with indep
-  freebayes_prune_1000g_memory: 5
+  freebayes_prune_1000g_memory: 5  ## used for both memory and disk allocation
   freebayes_prune_1000g_threads: 1
 
   ### Following options for contingency to deal with duplicated snps - to remove from both 1000G and dataaset
-  freebayes_final_pruning_memory: 5
+  freebayes_final_pruning_memory: 5  ## used for both memory and disk allocation
   freebayes_final_pruning_threads: 1
 
   ### Following options for subsetting for indicated snps + update X, Y, mt to 23, 24, 25, 26 chrs
-  freebayes_split_data_memory: 4
+  freebayes_split_data_memory: 4  ## used for both memory and disk allocation
   freebayes_split_data_threads: 1
 
   ### Following options for projecting 1000 genomes data
-  freebayes_pca_1000g_memory: 4
+  freebayes_pca_1000g_memory: 4  ## used for both memory and disk allocation
   freebayes_pca_1000g_threads: 1
 
   ### Following options for projecting data to 1000 genome pc space
-  freebayes_pca_project_memory: 8
+  freebayes_pca_project_memory: 8  ## used for both memory and disk allocation
   freebayes_pca_project_threads: 2
 
   ### Following options for predicting cell annotation using 1000 genomes reference in the orginal dataset
-  freebayes_pca_projection_assign_original_memory: 12
+  freebayes_pca_projection_assign_original_memory: 12  ## used for both memory and disk allocation
   freebayes_pca_projection_assign_original_threads: 2
 
 
 ### These rules will just run if ref_snp_predict in the snp section above is ste to True
 reference_ancestry_predictions:
   ### Following options for correlating individual IDs to clusters
-  freebayes_correlate_indivs_memory: 8
+  freebayes_correlate_indivs_memory: 8  ## used for both memory and disk allocation
   freebayes_correlate_indivs_threads: 2
 
   ### Following options for converting freebayes vcf to plink
@@ -101,29 +109,29 @@ reference_ancestry_predictions:
   reference_common_snps_threads: 1
 
   ### Following options for pruning 1000G data with indep
-  reference_prune_1000g_memory: 5
+  reference_prune_1000g_memory: 5  ## used for both memory and disk allocation
   reference_prune_1000g_threads: 1
 
   ### Following options for contingency to deal with duplicated snps - to remove from both 1000G and dataaset
-  reference_final_pruning_memory: 5
+  reference_final_pruning_memory: 5  ## used for both memory and disk allocation
   reference_final_pruning_threads: 1
 
   ### Following options for subsetting for indicated snps + update X, Y, mt to 23, 24, 25, 26 chrs
-  reference_split_data_memory: 4
+  reference_split_data_memory: 4  ## used for both memory and disk allocation
   reference_split_data_threads: 1
 
   ### Following options for projecting 1000 genomes data
-  reference_pca_1000g_memory: 4
+  reference_pca_1000g_memory: 4  ## used for both memory and disk allocation
   reference_pca_1000g_threads: 1
 
   ### Following options for projecting data to 1000 genome pc space
-  reference_pca_project_memory: 8
+  reference_pca_project_memory: 8  ## used for both memory and disk allocation
   reference_pca_project_threads: 2
 
   ### Following options for predicting cell annotation using 1000 genomes reference in the orginal dataset
-  reference_pca_projection_assign_original_memory: 12
+  reference_pca_projection_assign_original_memory: 12  ## used for both memory and disk allocation
   reference_pca_projection_assign_original_threads: 2
 
   ### Following options for comparing freebayes predicted annotations to reference annotations
-  reference_freebayes_comparison_memory: 16
+  reference_freebayes_comparison_memory: 16  ## used for both memory and disk allocation
   reference_freebayes_comparison_threads: 4

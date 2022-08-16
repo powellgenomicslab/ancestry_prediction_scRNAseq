@@ -6,7 +6,7 @@ library(tidyverse)
 
 
 ### Set up directories ###
-args <- commandArgs(trailingOnly=FALSE)
+args <- commandArgs(trailingOnly=TRUE)
 common_snps_file <- args[1]
 snps_file_1000g <- args[2]
 outdir <- args[3]
@@ -29,4 +29,4 @@ subset_snps_1000g <- snps_1000g[common_snps, on = c("chr", "bp", "a1", "a2")]
 
 snps_out_1000g <- data.table(ID = paste(subset_snps_1000g$chr, subset_snps_1000g$bp, subset_snps_1000g$id, subset_snps_1000g$a1, subset_snps_1000g$a2, sep = "_"))
 
-fwrite(snps_out_1000g, paste0(outdir,))
+fwrite(snps_out_1000g, paste0(outdir,"/snps_1000g_common_across_sites.tsv"), sep = "\t")

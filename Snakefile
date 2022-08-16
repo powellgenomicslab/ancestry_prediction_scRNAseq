@@ -10,7 +10,7 @@ import pysam
 import gzip
 import re
 import numpy as np
-
+from itertools import repeat
 
 # Import custom functions
 from mods import prepareArguments
@@ -67,6 +67,8 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
                     scrnaseq_libs_df.to_csv(os.path.join(output_dict["outdir"],'file_directories.txt'), sep = "\t", index = False)
                     samples = pd.read_csv(input_dict["metadata_file"], sep = "\t")
                     samples.columns = ["Pool", "Individual"]
+                    samples['Pool'].apply(str)
+                    samples['Individual'].apply(str)
 
 
                     logger.info("Done.\n\n")
@@ -141,15 +143,18 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
                                 if ref_dict["genome"] == "hg38":
                                     if chr:
                                         chain_cross = '/opt/ancestry_prediction_scRNAseq/refs/hg38ToHg19.over.chain'
-                                        bed = '/opt/ancestry_prediction_scRNAseq/refs/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.bed'
+                                        bed_dir = '/opt/ancestry_prediction_scRNAseq/refs/split_beds/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding'
+                                        chrs = ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22"]
                                     else:
                                         chain_cross = '/opt/ancestry_prediction_scRNAseq/refs/GRCh38_to_GRCh37.chain'
-                                        bed = '/opt/ancestry_prediction_scRNAseq/refs/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.bed'
-                                        bed = '/directflow/SCCGGroupShare/projects/DrewNeavin/ancestry_prediction_from_scRNA-seq/ancestry_prediction_scRNAseq/refs/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.bed'
+                                        bed_dir = '/opt/ancestry_prediction_scRNAseq/refs/split_beds/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr'
+                                        chrs = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]
                                 elif chr:
-                                    bed = '/opt/ancestry_prediction_scRNAseq/refs/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.bed'
+                                    bed = '/opt/ancestry_prediction_scRNAseq/refs/split_beds/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding'
+                                    chrs = ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22"]
                                 else:
-                                    bed = '/opt/ancestry_prediction_scRNAseq/refs/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.bed'
+                                    bed = '/opt/ancestry_prediction_scRNAseq/refs/split_beds/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr'
+                                    chrs = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]
 
                                 # Import individual rules
                                 include: "includes/freebayes_ancestry.smk"
@@ -161,8 +166,9 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
                                 if not (input_dict["common_snps"] in ["None", 'none', "NONE", "Null", "null", "NULL"]):
 
                                     logger.info("Running the remainder of the pipeline as you indicated that your snps common across all sites are listed in: " + input_dict["common_snps"])
-                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/freebayes_known_SNP/pca_sex_checks_original/Ancestry_PCAs.png", zip, pool=samples.Pool, individual=samples.Individual))
-                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/freebayes_known_SNP/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual))
+                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/Ancestry_PCAs.png", zip, pool=samples.Pool, individual=samples.Individual))
+                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual))
+                                    post_common_snps_rules.append(output_dict["outdir"] + "/ancestry_assignments.tsv")
 
 
                                 #### Determine if need to run the reference rules and add them if necessary ####

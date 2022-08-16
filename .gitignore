@@ -1,3 +1,4 @@
 Snakefile_copy
 .snakemake
 souporcell_ancestry_test.smk
+refs/prepare_beds.sh
