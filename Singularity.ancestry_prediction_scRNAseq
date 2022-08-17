@@ -2,7 +2,7 @@ bootstrap: docker
 from: continuumio/miniconda3
 
 %labels
-        Image_version = 0.0.3
+        Image_version = 0.0.2
         Author = Drew Neavin
 
 %environment
