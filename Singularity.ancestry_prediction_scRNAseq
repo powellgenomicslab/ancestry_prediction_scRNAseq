@@ -169,6 +169,31 @@ from: continuumio/miniconda3
     cd /opt
         git clone https://github.com/powellgenomicslab/ancestry_prediction_scRNAseq.git 
         cd ancestry_prediction_scRNAseq
+        rm -rf refs
+        mkdir refs
+        cd refs
+        
+        mkdir GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding
+        cd GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding
+        wget https://www.dropbox.com/sh/igqzd2ip2qss8yw/AAAqMWtsQUCXmXR4lP5OsCyNa --content-disposition
+        unzip  GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.zip GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.zip
+
+        mkdir GRCh37_1000G_MAF0.01_GeneFiltered_NoChr
+        cd GRCh37_1000G_MAF0.01_GeneFiltered_NoChr
+        wget https://www.dropbox.com/sh/ydvrdrk8n94871e/AAAz-H-p79uG_6l2J3CdLRbya --content-disposition
+        unzip GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.zipGRCh37_1000G_MAF0.01_GeneFiltered_NoChr.zip
+
+        mkdir GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding
+        cd GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding
+        wget https://www.dropbox.com/sh/ptovlt2fkk4qup6/AACQ2dbUDGd79R0KgO_S_cnQa --content-disposition
+        unzip GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.zipGRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.zip
+
+        mkdir GRCh38_1000G_MAF0.01_GeneFiltered_NoChr
+        cd GRCh38_1000G_MAF0.01_GeneFiltered_NoChr
+        wget https://www.dropbox.com/sh/7tfizihpvzvxgi5/AADUOctqTHPn6UIqbCCD7qG_a --content-disposition
+        unzip GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.zipGRCh38_1000G_MAF0.01_GeneFiltered_NoChr.zip
+
+
 
     ### Needed for R libraries ###
     cp /opt/conda/lib/libstdc++.so.6.0.28 /usr/lib/x86_64-linux-gnu/

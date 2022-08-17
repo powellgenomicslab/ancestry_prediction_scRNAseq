@@ -3,3 +3,4 @@ Snakefile_copy
 souporcell_ancestry_test.smk
 refs/prepare_beds.sh
 mods/__pycache__
+refs/split_beds
