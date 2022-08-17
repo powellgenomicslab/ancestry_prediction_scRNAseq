@@ -166,8 +166,8 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
                                 if not (input_dict["common_snps"] in ["None", 'none', "NONE", "Null", "null", "NULL"]):
 
                                     logger.info("Running the remainder of the pipeline as you indicated that your snps common across all sites are listed in: " + input_dict["common_snps"])
-                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/Ancestry_PCAs.png", zip, pool=samples.Pool, individual=samples.Individual))
-                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual))
+                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/pca_sex_checks_original/Ancestry_PCAs.png", zip, pool=samples.Pool, individual=samples.Individual))
+                                    post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual))
                                     post_common_snps_rules.append(output_dict["outdir"] + "/ancestry_assignments.tsv")
 
 
@@ -194,7 +194,7 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
 
                                 rule all:
                                     input:
-                                        expand(output_dict["outdir"] +  "/{pool}/individual_{individual}/freebayes/common_snps/snps_data.tsv", zip, pool=samples.Pool, individual=samples.Individual),
+                                        expand(output_dict["outdir"] +  "/{pool}/individual_{individual}/common_snps/snps_data.tsv", zip, pool=samples.Pool, individual=samples.Individual),
                                         output_dict["outdir"] +  "/common_snps_across_pools.tsv",
                                         post_common_snps_rules,
                                         reference_rules
