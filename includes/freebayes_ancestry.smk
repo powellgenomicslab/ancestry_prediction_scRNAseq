@@ -50,7 +50,6 @@ rule freebayes:
     input:
         bai = output_dict["outdir"] + "/{pool}/bams/{individual}.bam.bai",
         bam_done = output_dict["outdir"] + "/{pool}/bams/subset_bam.done",
-        bed = bed_dir + "/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_{chr}.bed"
     output:
         temp(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes_{chr}.vcf")
     resources:
@@ -58,13 +57,14 @@ rule freebayes:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"]
     threads: freebayes_ancestry_dict["freebayes_threads"]
     params:
+        bed = bed_dir + "/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_{chr}.bed",
         bam = output_dict["outdir"] + "/{pool}/bams/{individual}.bam",
         sif = input_dict["singularity_image"],
         fasta = fasta,
         bind = input_dict["bind_path"],
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} freebayes -f {params.fasta} -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets {input.bed} {params.bam} > {output}
+        singularity exec --bind {params.bind} {params.sif} freebayes -f {params.fasta} -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets {params.bed} {params.bam} > {output}
         """
 
 rule freebayes_merge:
