@@ -72,6 +72,8 @@ from: continuumio/miniconda3
 
     freebayes --version
 
+    
+
     cd /opt
         wget https://github.com/Kitware/CMake/releases/download/v3.14.4/cmake-3.14.4.tar.gz
         tar -xzf cmake-3.14.4.tar.gz
@@ -80,6 +82,34 @@ from: continuumio/miniconda3
         make
         make install
         cmake --version
+
+
+
+    ### Get the github repo with scripts for workflow ###
+    cd /opt
+        git clone https://github.com/powellgenomicslab/ancestry_prediction_scRNAseq.git 
+        cd ancestry_prediction_scRNAseq
+        rm -rf refs
+        rm -rf docs
+
+    cd /opt
+    
+    wget https://www.dropbox.com/s/b6qhbkx9o62mbil/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.tar.gz
+    tar -xvf GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.tar.gz
+    rm GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.tar.gz
+
+    wget https://www.dropbox.com/s/oj2n1qf4srbbcrq/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.tar.gz
+    tar -xvf GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.tar.gz
+    rm GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.tar.gz
+
+    wget https://www.dropbox.com/s/nf2ngolj03g42b9/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.tar.gz
+    tar -xvf GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.tar.gz
+    rm GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.tar.gz
+
+    wget https://www.dropbox.com/s/moyptfjjigf1yob/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.tar.gz
+    tar -xvf GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.tar.gz
+    rm GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.tar.gz
+
 
 
     ### Install R libraries ###
@@ -152,8 +182,9 @@ from: continuumio/miniconda3
     eval "$(conda shell.bash hook)"
     conda activate py36
 
-    conda install sinto
+    # conda install sinto
 
+    /opt/conda/envs/py36/bin/pip install sinto
     /opt/conda/envs/py36/bin/pip install numpy
     /opt/conda/envs/py36/bin/pip install scipy
     /opt/conda/envs/py36/bin/pip install scikit-learn
@@ -163,35 +194,6 @@ from: continuumio/miniconda3
     /opt/conda/envs/py36/bin/pip install numba
     /opt/conda/envs/py36/bin/pip install argparse
     /opt/conda/envs/py36/bin/pip install CrossMap
-
-
-    ### Get the github repo with scripts for workflow ###
-    cd /opt
-        git clone https://github.com/powellgenomicslab/ancestry_prediction_scRNAseq.git 
-        cd ancestry_prediction_scRNAseq
-        rm -rf refs
-        mkdir refs
-        cd refs
-        
-        mkdir GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding
-        cd GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding
-        wget https://www.dropbox.com/sh/igqzd2ip2qss8yw/AAAqMWtsQUCXmXR4lP5OsCyNa --content-disposition
-        unzip  GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.zip GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.zip
-
-        mkdir GRCh37_1000G_MAF0.01_GeneFiltered_NoChr
-        cd GRCh37_1000G_MAF0.01_GeneFiltered_NoChr
-        wget https://www.dropbox.com/sh/ydvrdrk8n94871e/AAAz-H-p79uG_6l2J3CdLRbya --content-disposition
-        unzip GRCh37_1000G_MAF0.01_GeneFiltered_NoChr.zipGRCh37_1000G_MAF0.01_GeneFiltered_NoChr.zip
-
-        mkdir GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding
-        cd GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding
-        wget https://www.dropbox.com/sh/ptovlt2fkk4qup6/AACQ2dbUDGd79R0KgO_S_cnQa --content-disposition
-        unzip GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.zipGRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding.zip
-
-        mkdir GRCh38_1000G_MAF0.01_GeneFiltered_NoChr
-        cd GRCh38_1000G_MAF0.01_GeneFiltered_NoChr
-        wget https://www.dropbox.com/sh/7tfizihpvzvxgi5/AADUOctqTHPn6UIqbCCD7qG_a --content-disposition
-        unzip GRCh38_1000G_MAF0.01_GeneFiltered_NoChr.zipGRCh38_1000G_MAF0.01_GeneFiltered_NoChr.zip
 
 
 
@@ -208,13 +210,12 @@ from: continuumio/miniconda3
     ### Remove unnecessary files ###
     cd /opt
     rm cmake-3.14.4.tar.gz
-    rm v2.7.tar.gz
-    rm bedtools-2.30.0.tar.gz
-    rm vartrix-v1.1.3-x86_64-linux.tar.gz
+#    rm bedtools-2.30.0.tar.gz
+#    rm vartrix-v1.1.3-x86_64-linux.tar.gz
     rm htslib-1.13.tar.bz2
     rm samtools-1.13.tar.bz2
     rm bcftools-1.13.tar.bz2
-    rm vcftools-0.1.16.tar.gz
+#    rm vcftools-0.1.16.tar.gz
 
 
     conda clean --all
@@ -225,9 +226,5 @@ from: continuumio/miniconda3
     SCRIPT_DIR=/opt/ancestry_prediction_scRNAseq
     export SCRIPT_DIR
 %apprun setup
-    exec cp -a ${SCRIPT_DIR}/ancestry_prediction_scRNAseq.yaml "$PWD"
-    exec cp -a ${SCRIPT_DIR}/includes "$PWD"
-    exec cp -a ${SCRIPT_DIR}/mods "$PWD"
-    exec cp -a ${SCRIPT_DIR}/Snakefile "$PWD"
-    exec cp -a ${SCRIPT_DIR}/snakemake.yaml "$PWD"
+    exec cp -a ${SCRIPT_DIR}/. "$PWD"
 

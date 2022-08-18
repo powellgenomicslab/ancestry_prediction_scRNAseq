@@ -184,3 +184,10 @@ This is an example fo the top few lines of this section:
 Support
 -----------------
 If you have any questions, suggestions or issues with any part of the Ancestry Prediction from scRNA-seq Data Pipeline, feel free to submit an `issue <https://github.com/powellgenomicslab/ancestry_prediction_scRNAseq/issues>`_ or email Drew Neavin (d.neavin @ garvan.org.au)
+
+
+
+Next
+-----------------
+
+Now you should be ready to run the ancestry prediction pipline - proceed to :doc:`Pipeline`.
