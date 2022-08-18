@@ -84,6 +84,27 @@ from: continuumio/miniconda3
         cmake --version
 
 
+    ## Make environment fo python 3.6.8 
+    yes | /opt/conda/bin/conda create -n py36 python=3.6.8 
+    yes | apt-get install git
+    /opt/conda/bin/conda init bash
+    eval "$(conda shell.bash hook)"
+    conda activate py36
+
+    conda install sinto
+
+    # /opt/conda/envs/py36/bin/pip install sinto
+    /opt/conda/envs/py36/bin/pip install numpy
+    /opt/conda/envs/py36/bin/pip install scipy
+    /opt/conda/envs/py36/bin/pip install scikit-learn
+    /opt/conda/envs/py36/bin/pip install pandas
+    /opt/conda/envs/py36/bin/pip install matplotlib==3.2.2
+    /opt/conda/envs/py36/bin/pip install scikit-image
+    /opt/conda/envs/py36/bin/pip install numba
+    /opt/conda/envs/py36/bin/pip install argparse
+    /opt/conda/envs/py36/bin/pip install CrossMap
+
+
 
     ### Get the github repo with scripts for workflow ###
     cd /opt
@@ -173,27 +194,6 @@ from: continuumio/miniconda3
         ./configure
         make
         make install
-
-
-    ## Make environment fo python 3.6.8 
-    yes | /opt/conda/bin/conda create -n py36 python=3.6.8 
-    yes | apt-get install git
-    /opt/conda/bin/conda init bash
-    eval "$(conda shell.bash hook)"
-    conda activate py36
-
-    # conda install sinto
-
-    /opt/conda/envs/py36/bin/pip install sinto
-    /opt/conda/envs/py36/bin/pip install numpy
-    /opt/conda/envs/py36/bin/pip install scipy
-    /opt/conda/envs/py36/bin/pip install scikit-learn
-    /opt/conda/envs/py36/bin/pip install pandas
-    /opt/conda/envs/py36/bin/pip install matplotlib==3.2.2
-    /opt/conda/envs/py36/bin/pip install scikit-image
-    /opt/conda/envs/py36/bin/pip install numba
-    /opt/conda/envs/py36/bin/pip install argparse
-    /opt/conda/envs/py36/bin/pip install CrossMap
 
 
 

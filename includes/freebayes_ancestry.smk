@@ -51,13 +51,13 @@ rule freebayes:
         bai = output_dict["outdir"] + "/{pool}/bams/{individual}.bam.bai",
         bam_done = output_dict["outdir"] + "/{pool}/bams/subset_bam.done",
     output:
-        temp(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes_{chr}.vcf")
+        temp(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes_chr{chr}.vcf")
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"]
     threads: freebayes_ancestry_dict["freebayes_threads"]
     params:
-        bed = bed_dir + "/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_{chr}.bed",
+        bed = bed_dir + "/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_chr{chr}.bed",
         bam = output_dict["outdir"] + "/{pool}/bams/{individual}.bam",
         sif = input_dict["singularity_image"],
         fasta = fasta,
@@ -69,7 +69,7 @@ rule freebayes:
 
 rule freebayes_merge:
     input:
-        lambda wildcards: expand(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes_{chr}.vcf", zip, pool = pd.Series(samples.Pool.tolist() * 22), individual = pd.Series(samples.Individual.tolist() * 22), chr = [x for item in chrs for x in repeat(item, samples.shape[0])])
+        lambda wildcards: expand(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes_chr{chr}.vcf", zip, pool = pd.Series(samples.Pool.tolist() * 22), individual = pd.Series(samples.Individual.tolist() * 22), chr = [x for item in chrs for x in repeat(item, samples.shape[0])])
     output:
         output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes.vcf"
     resources:
