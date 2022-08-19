@@ -57,7 +57,7 @@ rule freebayes:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * freebayes_ancestry_dict["freebayes_memory"]
     threads: freebayes_ancestry_dict["freebayes_threads"]
     params:
-        bed = bed_dir + "/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_chr{chr}.bed",
+        bed = bed_dir + "/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_{chr}.bed",
         bam = output_dict["outdir"] + "/{pool}/bams/{individual}.bam",
         sif = input_dict["singularity_image"],
         fasta = fasta,
