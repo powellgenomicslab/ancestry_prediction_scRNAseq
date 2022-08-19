@@ -21,7 +21,7 @@ colnames(samples) <- c("Pool", "Individual")
 snps_list <- list()
 
 for (row in 1:nrow(samples)){
-    snps_list[[paste0(samples[row,"Pool"], "_", samples[row,"Individual"])]] <- fread(paste0(outdir, "/", samples[row,"Pool"], "/individual_", samples[row,"Individual"], "/freebayes/common_snps/snps_data.tsv"), sep = "\t")
+    snps_list[[paste0(samples[row,"Pool"], "_", samples[row,"Individual"])]] <- fread(paste0(outdir, "/", samples[row,"Pool"], "/individual_", samples[row,"Individual"], "/common_snps/snps_data.tsv"), sep = "\t")
 }
 
 ##### Account for possibility that there may only be one individual in one pool at one location

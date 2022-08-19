@@ -23,7 +23,7 @@ colnames(samples) <- c("Pool", "Individual")
 dt_list <- list()
 
 for (row in 1:nrow(samples)){
-    dt_list[[paste0(samples[row,"Pool"], "_", samples[row,"Individual"])]] <- fread(paste0(outdir, "/", samples[row,"Pool"], "/individual_", samples[row,"Individual"], "/freebayes/pca_sex_checks_original/ancestry_assignments.tsv"), sep = "\t")
+    dt_list[[paste0(samples[row,"Pool"], "_", samples[row,"Individual"])]] <- fread(paste0(outdir, "/", samples[row,"Pool"], "/individual_", samples[row,"Individual"], "/pca_sex_checks_original/ancestry_assignments.tsv"), sep = "\t")
 }
 
 
