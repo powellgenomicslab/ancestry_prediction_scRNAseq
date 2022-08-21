@@ -3,24 +3,6 @@ shell.executable('bash')
 
 ### This will only be run if there are reference SNP genotypes for individuals in the dataset
 
-rule souporcell_correlate_indivs:
-    input:
-        output_dict["outdir"] + "/{pool}/souporcell/cluster_genotypes.vcf"
-    output:
-        output_dict["outdir"] + "/{pool}/souporcell/Genotype_ID_key.txt"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["souporcell_correlate_indivs_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["souporcell_correlate_indivs_memory"]
-    threads: reference_ancestry_predictions_dict["souporcell_correlate_indivs_threads"]
-    params:
-        vcf = snp_dict["vcf"],
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_path"],
-        out = output_dict["outdir"] + "/{pool}/souporcell",
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} Assign_Indiv_by_Geno.R -r {params.vcf} -c {input} -o {params.out}
-        """
 
 ### convert vcf to plink
 rule reference_vcf2plink:
@@ -37,10 +19,10 @@ rule reference_vcf2plink:
     params:
         sif = input_dict["singularity_image"],
         bind = input_dict["bind_path"],
-        souporcell = output_dict["outdir"] + "/reference/reference"
+        ref = output_dict["outdir"] + "/reference/reference"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} plink2 --vcf {input} --make-pgen --out {params.souporcell}
+        singularity exec --bind {params.bind} {params.sif} plink2 --vcf {input} --make-pgen --out {params.ref}
         """
 
 
@@ -304,16 +286,16 @@ rule reference_pca_projection_assign_original:
         """
 
 
-rule reference_souporcell_comparison:
+rule reference_freebayes_comparison:
     input:
         tsv = output_dict["outdir"] + "/reference/pca_sex_checks_original/ancestry_assignments.tsv",
-        sc_data = expand(output_dict["outdir"] + "/{pool}/individual_{individual}/freebayes/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual)
+        sc_data = expand(output_dict["outdir"] + "/{pool}/individual_{individual}/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual)
     output:
         anc_fig = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref_identified.png"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_souporcell_comparison_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_souporcell_comparison_memory"]
-    threads: reference_ancestry_predictions_dict["reference_souporcell_comparison_threads"]
+        mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_freebayes_comparison_memory"],
+        disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_freebayes_comparison_memory"]
+    threads: reference_ancestry_predictions_dict["reference_freebayes_comparison_threads"]
     params:
         variables = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/variables.tsv",
         sif = input_dict["singularity_image"],

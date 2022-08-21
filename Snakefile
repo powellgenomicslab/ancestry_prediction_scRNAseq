@@ -163,7 +163,7 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
                                 #### Determine if have common snps across sites to run ####
                                 post_common_snps_rules = []
 
-                                if not (input_dict["common_snps"] in ["None", 'none', "NONE", "Null", "null", "NULL"]):
+                                if not (input_dict["common_snps"] in ["None", 'none', "NONE", "Null", "null", "NULL"] or (input_dict["common_snps"] is None)):
 
                                     logger.info("Running the remainder of the pipeline as you indicated that your snps common across all sites are listed in: " + input_dict["common_snps"])
                                     post_common_snps_rules.append(expand(output_dict["outdir"]  + "/{pool}/individual_{individual}/pca_sex_checks_original/Ancestry_PCAs.png", zip, pool=samples.Pool, individual=samples.Individual))
@@ -174,7 +174,7 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
                                 #### Determine if need to run the reference rules and add them if necessary ####
                                 reference_rules = []
 
-                                if snp_dict["ref_snp_predict"] in ["True", "TRUE", "true", "T"]:
+                                if (snp_dict["ref_snp_predict"] in ["True", "TRUE", "true", "T"] or snp_dict["ref_snp_predict"]):
 
                                     logger.info("You indicated that you have reference SNP genotypes that you would like to use for ancestry prediction for pipeline accuracy checking.")
 
@@ -183,8 +183,7 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
 
                                         reference_rules.append(output_dict["outdir"] + "/reference/pca_sex_checks_original/Ancestry_PCAs.png")
                                         reference_rules.append(output_dict["outdir"] + "/reference/pca_sex_checks_original/ancestry_assignments.tsv")
-                                        reference_rules.append(expand(output_dict["outdir"] + "/{pool}/souporcell/Genotype_ID_key.txt", pool=samples.Pool))
-                                        reference_rules.append(output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assigfdccnments_probabilities_w_ref_identified.png")
+                                        reference_rules.append(output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref_identified.png")
 
                                     else:
                                         logger.info("Could not find the provided snp vcf file at: '" + snp_dict["vcf"] + "'.")
