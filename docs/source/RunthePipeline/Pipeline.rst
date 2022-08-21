@@ -42,7 +42,7 @@ Preparation
 Before running Snakemake_, let's define some variables that will make it easier and cleaner to run.
 
 Let's define two variables, ``$SNAKEFILE_ANC`` (the location of the ``Snakefile``) and ``$CONFIG_ANC``  which is (the location of the edited ``ancestry_prediction_scRNAseq.yaml``).
-These files are in the cloned github repository:
+These files were copied from the singularity image when you ran the setup command:
 
 .. code-block:: bash
   :emphasize-lines: 2,8
@@ -89,9 +89,11 @@ Now we have all the pieces that we need to run the pipeline.
 This Snakemake_ pipeline is built to run all the SNP genotype imputation pre-processing steps that are necessary.
 As discussed previously, the pipeline will be run in two phases.
 The first phase will identify the genetic variants in each sample.
+If you have reference SNP genotypes (*i.e.* microarray SNP genotype data or whole genome or exome data), some of those jobs will be run here too
 
 
 #. First, let's do a "dry run" to identify what jobs will be run (remember to activate you snakemake environment before running: ``conda activate ancestry_pred_snakemake``):
+
 
    .. code-block:: bash
 
@@ -100,12 +102,62 @@ The first phase will identify the genetic variants in each sample.
         --configfile $CONFIG_ANC \
         --dryrun \
         --cores 1 \
-        --reason
+        --quiet
 
-   - The result should show you all the jobs that snakemake will run:
+   The result should show you all the jobs that snakemake will run:
 
-     .. code-block:: bash
+   .. tab-set::
+  
+    .. tab-item:: Without Reference SNP Genotypes
+      :sync: key1
 
+      .. code-block:: bash
+
+        Job counts:
+              count   jobs
+              1       all
+              1       common_snps_across_pools
+              132     freebayes
+              6       freebayes_common_snps
+              6       freebayes_merge
+              6       freebayes_update_vcf
+              6       freebayes_vcf2plink
+              6       index
+              1       subset_bam
+              165
+
+    .. tab-item:: With Reference SNP Genotypes
+        :sync: key2
+
+        .. code-block:: bash
+
+          Job counts:
+              count   jobs
+              1       all
+              1       common_snps_across_pools
+              132     freebayes
+              1       freebayes_combine_results
+              6       freebayes_common_snps
+              6       freebayes_final_pruning
+              6       freebayes_merge
+              6       freebayes_pca_1000g
+              6       freebayes_pca_project
+              6       freebayes_pca_projection_assign_original
+              6       freebayes_prune_1000g
+              6       freebayes_update_vcf
+              6       freebayes_vcf2plink
+              6       index
+              1       reference_common_snps
+              1       reference_final_pruning
+              1       reference_freebayes_comparison
+              1       reference_pca_1000g
+              1       reference_pca_project
+              1       reference_pca_projection_assign_original
+              1       reference_prune_1000g
+              1       reference_vcf2plink
+              1       subset_bam
+              6       subset_common_snps
+              210
 
    .. admonition:: Note
     :class: seealso
@@ -127,11 +179,18 @@ The first phase will identify the genetic variants in each sample.
         dot -Tsvg \
             > dag1.svg
 
+   .. tab-set::
+  
+    .. tab-item:: Without Reference SNP Genotypes
+      :sync: key1
 
-   - The resulting image will be saved to your current directory. In this case, we are using just one pool with 6 individuals for illustration purposes but this figure will change depending on the number of pools and individuals in your dataset:
+      The resulting image will be saved to your current directory. In this case, we are using just one pool with 6 individuals for illustration purposes but this figure will change depending on the number of pools and individuals in your dataset. There's quite a lot in this figure so if you would like to see it you can view it `here <https://user-images.githubusercontent.com/44268007/185299587-f224146c-d3ed-4f03-bf97-a4daa022ca26.svg>`__.
 
-     .. figure:: 
-      :width: 300
+    .. tab-item:: With Reference SNP Genotypes
+      :sync: key2
+
+      The resulting image will be saved to your current directory. In this case, we are using just one pool with 6 individuals for illustration purposes but this figure will change depending on the number of pools and individuals in your dataset. There's quite a lot in this figure so if you would like to see it you can view it `here <https://user-images.githubusercontent.com/44268007/185781307-94dcdf14-33af-4b14-9b2f-35458dc9eeb3.svg>`__.
+
 
 
 #. Next, let's run those jobs:
@@ -212,7 +271,7 @@ After you have received the list of SNP genotypes that were identified at each s
     bind_path: /path ## List of paths to bind to Singularity. You can specify multiple directories by adding a "," between them. Eg. ${DIRECTORY1},${DIRECTORY2}. Singularity will bind the directory that you are running from + subfolders but will not be able to find anything above unless it is in this argument
     scRNAseq_dir: /path/to/scRNAseq/parent/directory ### the parent directory that has directories for each pool and the scRNA-seq output below it
     barcode_annotation_dir: /path/to/barcodes/annotation/directory ### The directory that contains each of the barcode files with per-barcode annotation. The pool name needs to be within the file name. these should be filtered to remove doublets and contain only cells assigned to an individual 
-    common_snps: None ### Leave as None for first run of the pipeline. This will be the file of SNPs common across all sites and samples. This will be generated by sending your snp list files to Drew Neavin and the garvan institute (d.neavin@garvan.org.au) to create a common list of snps.
+    common_snps: /path/to/common_snps_across_sites.tsv ### Leave as None for first run of the pipeline. This will be the file of SNPs common across all sites and samples. This will be generated by sending your snp list files to Drew Neavin and the garvan institute (d.neavin@garvan.org.au) to create a common list of snps.
     barcode_tag: "CB"
 
   outputs: 
@@ -238,14 +297,49 @@ Now that we have provided the path to the SNP genotypes that will be used for an
 
    - The result should show you all the jobs that snakemake will run:
 
-   .. code-block:: bash
+   .. tab-set::
+  
+    .. tab-item:: Without Reference SNP Genotypes
+      :sync: key1
 
+      .. code-block:: bash
+
+        Job counts:
+          count	jobs
+          1	all
+          1	freebayes_combine_results
+          6	freebayes_final_pruning
+          6	freebayes_pca_1000g
+          6	freebayes_pca_project
+          6	freebayes_pca_projection_assign_original
+          6	freebayes_prune_1000g
+          6	subset_common_snps
+          38
+
+    .. tab-item:: With Reference SNP Genotypes
+      :sync: key2
+
+      .. code-block:: bash
+
+        Job counts:
+          count	jobs
+          1	all
+          1	freebayes_combine_results
+          6	freebayes_final_pruning
+          6	freebayes_pca_1000g
+          6	freebayes_pca_project
+          6	freebayes_pca_projection_assign_original
+          6	freebayes_prune_1000g
+          1	reference_freebayes_comparison
+          6	subset_common_snps
+          39
 
    .. admonition:: Note
     :class: seealso
 
     The number of rules to be run will depend on the number of samples and pools that you have.
     The number for each rule should be the number of samples that you have.
+    For this example we have oine pool that has 6 total samples.
 
 
 
@@ -261,8 +355,25 @@ Now that we have provided the path to the SNP genotypes that will be used for an
         dot -Tsvg \
             > dag2.svg
 
+   .. tab-set::
+  
+    .. tab-item:: Without Reference SNP Genotypes
+      :sync: key1
 
-   - The resulting image will show jobs that are completed in dashed lines and those that still need to be run in solid lines. This will be saved to your current directory.
+      The resulting image will show jobs that are completed in dashed lines and those that still need to be run in solid lines. This will be saved to your current directory.
+      The resulting saved image will show jobs that are completed in dashed lines and those that still need to be run in solid lines. 
+      In this case, we are using just one pool with 6 individuals for illustration purposes but this figure will change depending on the number of pools and individuals in your dataset.
+      There's quite a lot in this figure so if you would like to see it you can view it `here <https://user-images.githubusercontent.com/44268007/185772200-03ad3b5f-91a1-4bef-bf8f-9773f9f519b6.svg>`__.
+
+    .. tab-item:: With Reference SNP Genotypes
+      :sync: key2
+
+      The resulting image will show jobs that are completed in dashed lines and those that still need to be run in solid lines. This will be saved to your current directory.
+      The resulting saved image will show jobs that are completed in dashed lines and those that still need to be run in solid lines. 
+      In this case, we are using just one pool with 6 individuals for illustration purposes but this figure will change depending on the number of pools and individuals in your dataset.
+      There's quite a lot in this figure so if you would like to see it you can view it `here <https://user-images.githubusercontent.com/44268007/185792786-c236a793-fb9e-4d7e-8363-a57f36f0d922.svg>`__.
+
+
 
 
 #. Next, let's run those new jobs:
@@ -299,3 +410,8 @@ Now that we have provided the path to the SNP genotypes that will be used for an
 
 
 
+Results
+^^^^^^^^^^^^^
+
+Now you have run the complete pipeline and all of your results should be in the output directory that you indicated.
+An explanation of the results are in the :doc:`Results` documentation.
