@@ -23,12 +23,12 @@ samples_file <- c(arguments[4,])
 print("Reading in samples dataframe.")
 samples <- fread(samples_file, sep = "\t")
 colnames(samples) <- c("Pool", "N")
-pools <- samples$Pool
+pools <- unique(samples$Pool)
 
 
 
 individuals <- lapply(pools, function(pool){
-    dir(paste0(datadir,pool), pattern = "individual")
+    dir(paste0(datadir,"/",pool), pattern = "individual")
 })
 names(individuals) <- pools
 
@@ -44,8 +44,8 @@ print("Reading in results.")
 
 freebayes_anc_list <- lapply(pools, function(pool){
     tmp <- lapply(individuals[[pool]], function(indiv){
-        if (file.exists(paste0(datadir, pool,"/",indiv, "/pca_sex_checks_original/ancestry_assignments.tsv"))){
-            tmp2 <- fread(paste0(datadir, pool,"/",indiv, "/pca_sex_checks_original/ancestry_assignments.tsv"))
+        if (file.exists(paste0(datadir, "/", pool,"/",indiv, "/pca_sex_checks_original/ancestry_assignments.tsv"))){
+            tmp2 <- fread(paste0(datadir, "/", pool,"/",indiv, "/pca_sex_checks_original/ancestry_assignments.tsv"))
             tmp2$Pool <- pool
             tmp2$IID <- gsub("individual_", "", indiv)
             return(tmp2)
