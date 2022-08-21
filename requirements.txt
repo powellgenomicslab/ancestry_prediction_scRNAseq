@@ -8,3 +8,4 @@ sphinx-togglebutton>=0.2.3
 sphinxemoji>=0.1.9
 pygments>=2.7.1
 sphinx_design
+furo
