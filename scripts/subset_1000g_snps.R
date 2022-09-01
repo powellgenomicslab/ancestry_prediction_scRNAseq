@@ -16,11 +16,12 @@ outdir <- args[3]
 print("Reading in common snps file.")
 common_snps <- fread(common_snps_file, sep = "_")
 colnames(common_snps) <- c("chr", "bp", "a1", "a2")
-
+common_snps$chr <- as.character(common_snps$chr)
 
 print("Reading in 1000g snps file.")
 snps_1000g <- fread(snps_file_1000g, sep = "_")
 colnames(snps_1000g) <- c("chr", "bp", "id", "a1", "a2")
+snps_1000g$chr <- as.character(snps_1000g$chr)
 
 
 ### Subset the 1000g snps by the common snps that will be used across all sites ###

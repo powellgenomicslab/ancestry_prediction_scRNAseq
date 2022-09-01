@@ -16,6 +16,10 @@ outdir <- arguments[1,]
 data_score <- read_delim(as.character(arguments[2,]), delim = "\t", col_types = cols(.default = "d", "#FID" = "c", "IID" = "c", "Provided_Ancestry" = "c"))
 onekg_score <- read_delim(as.character(arguments[3,]), delim = "\t", col_types = cols(.default = "d", "#IID" = "c", "SuperPop" = "c", "Population" = "c"))
 onekg_anc <- read_delim(as.character(arguments[4,]), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))
+samples <- fread(as.character(arguments[5,]), sep = "\t")
+colnames(samples) <- c("Pool", "Individual")
+pool <- as.character(arguments[6,])
+indiv <- as.character(arguments[7,])
 
 
 ##### Set up variables #####
@@ -104,4 +108,8 @@ plot_PCs_medoids <- ggplot(scores, aes(PC1, PC2, color = Final_Assignment)) +
 ggsave(plot_PCs_medoids, filename = paste0(outdir,"Ancestry_PCAs.png"), height = 5, width = 12)
 
 
-fwrite(scores[scores$Plot == "Projected Data Assignments",], paste0(outdir, "ancestry_assignments.tsv"), sep = "\t")
+fwrite(scores[scores$Plot == "Projected Data Assignments", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments.tsv"), sep = "\t", na = "NA")
+
+if ([1] == pool & samples$Individual[1] == indiv){
+  fwrite(scores[scores$Plot == "1000G Reference", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments_w_ref.tsv"), sep = "\t", na = "NA")
+}

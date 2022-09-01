@@ -25,7 +25,7 @@ outputs:
 #############################################################################################################################
 snp:
   ref_snp_predict: False ## Set to true or false depending on if have reference SNP genotype data to be predicted for pipeline accuracy testing purposes
-  vcf: /path/to/unimputed/reference/vcf.vcf ## Reference SNP genotype vcf that is UNIMPUTED 
+  ref_snp: /path/to/unimputed/reference/file ## Reference SNP genotype vcf (file.vcf) or plink files base (of pgen files or bfiles)
 
 
 #########################################################################################################################################

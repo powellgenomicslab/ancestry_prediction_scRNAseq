@@ -56,7 +56,7 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
 
                     if not os.path.exists(output_dict["outdir"]):
 
-                        logger.info("It appears that the output directory that you indicated does not yet exist, creating it at: {}".output_dict["outdir"])
+                        logger.info("It appears that the output directory that you indicated does not yet exist, creating it at: " + output_dict["outdir"])
                         os.makedirs(output_dict["outdir"])
 
 
@@ -178,15 +178,18 @@ if ((ref_dict["genome"] == "hg19" and os.path.exists(fasta)) or (ref_dict["genom
 
                                     logger.info("You indicated that you have reference SNP genotypes that you would like to use for ancestry prediction for pipeline accuracy checking.")
 
-                                    if os.path.exists(snp_dict["vcf"]):
+                                    if snp_dict["ref_snp"].endswith("vcf") or os.path.exists(snp_dict["ref_snp"] + ".bed") or os.path.exists(snp_dict["ref_snp"] + ".pgen"):
                                         include: "includes/reference_ancestry_predictions.smk"
 
                                         reference_rules.append(output_dict["outdir"] + "/reference/pca_sex_checks_original/Ancestry_PCAs.png")
                                         reference_rules.append(output_dict["outdir"] + "/reference/pca_sex_checks_original/ancestry_assignments.tsv")
-                                        reference_rules.append(output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref_identified.png")
+
+                                        if not (input_dict["common_snps"] in ["None", 'none', "NONE", "Null", "null", "NULL"] or (input_dict["common_snps"] is None)):
+
+                                            reference_rules.append(output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref.png")
 
                                     else:
-                                        logger.info("Could not find the provided snp vcf file at: '" + snp_dict["vcf"] + "'.")
+                                        logger.info("Could not find the provided snp genotype file(s) at: '" + snp_dict["ref_snp"] + "'.\nThey must be vcf or plink bfile or pgen formats.")
 
                                 else:
                                     logger.info("Beginning ancestry prediction using scRNA-seq data.")

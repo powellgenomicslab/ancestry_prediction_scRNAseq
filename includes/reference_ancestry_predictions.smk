@@ -4,63 +4,163 @@ shell.executable('bash')
 ### This will only be run if there are reference SNP genotypes for individuals in the dataset
 
 
-### convert vcf to plink
-rule reference_vcf2plink:
-    input:
-        snp_dict["vcf"]
-    output:
-        bed = output_dict["outdir"] + "/reference/reference.pgen",
-        bim = output_dict["outdir"] + "/reference/reference.pvar",
-        fam = output_dict["outdir"] + "/reference/reference.psam"
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_vcf2plink_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_vcf2plink_memory"]
-    threads: reference_ancestry_predictions_dict["reference_vcf2plink_threads"]
-    params:
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_path"],
-        ref = output_dict["outdir"] + "/reference/reference"
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} plink2 --vcf {input} --make-pgen --out {params.ref}
-        """
+if snp_dict["ref_snp"].endswith(".vcf"):
+
+    ### convert vcf to plink
+    rule reference_vcf2plink:
+        input:
+            snp_dict["ref_snp"]
+        output:
+            bed = output_dict["outdir"] + "/reference/reference.pgen",
+            bim = output_dict["outdir"] + "/reference/reference.pvar",
+            fam = output_dict["outdir"] + "/reference/reference.psam"
+        resources:
+            mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_vcf2plink_memory"],
+            disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_vcf2plink_memory"]
+        threads: reference_ancestry_predictions_dict["reference_vcf2plink_threads"]
+        params:
+            sif = input_dict["singularity_image"],
+            bind = input_dict["bind_path"],
+            ref = output_dict["outdir"] + "/reference/reference"
+        shell:
+            """
+            singularity exec --bind {params.bind} {params.sif} plink2 --vcf {input} --make-pgen --out {params.ref}
+            """
+
+    ### Pull just common SNPs between two groups ###
+    rule reference_common_snps:
+        input:
+            bed = output_dict["outdir"] + "/reference/reference.pgen",
+            bim = output_dict["outdir"] + "/reference/reference.pvar",
+            fam = output_dict["outdir"] + "/reference/reference.psam"
+        output:
+            snps_data = output_dict["outdir"] +  "/reference/common_snps/snps_data.tsv",
+            snps_1000g = output_dict["outdir"] +  "/reference/common_snps/snps_1000g.tsv",
+            bed = output_dict["outdir"] +  "/reference/common_snps/subset_data.pgen",
+            bim = output_dict["outdir"] +  "/reference/common_snps/subset_data.pvar",
+            fam = output_dict["outdir"] +  "/reference/common_snps/subset_data.psam",
+            bed_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pgen",
+            bim_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pvar",
+            fam_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.psam",
+        resources:
+            mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"],
+            disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"]
+        threads: reference_ancestry_predictions_dict["reference_common_snps_threads"]
+        params:
+            bim_1000 = "/opt/1000G/all_phase3_filtered.pvar",
+            infile =  output_dict["outdir"] + "/reference/reference",
+            infile_1000g = "/opt/1000G/all_phase3_filtered",
+            out = output_dict["outdir"] +  "/reference/common_snps/subset_data",
+            out_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g",
+            sif = input_dict["singularity_image"],
+            bind = input_dict["bind_path"]
+        shell:
+            """
+            singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {params.bim_1000} > {output.snps_1000g}
+            singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.bim_1000} {input.bim} > {output.snps_data}
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --extract {output.snps_data} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile_1000g} --extract {output.snps_1000g} --make-pgen --out {params.out_1000g}
+            """
 
 
 
-### Pull just common SNPs between two groups ###
-rule reference_common_snps:
-    input:
-        bed = output_dict["outdir"] + "/reference/reference.pgen",
-        bim = output_dict["outdir"] + "/reference/reference.pvar",
-        fam = output_dict["outdir"] + "/reference/reference.psam"
-    output:
-        snps_data = output_dict["outdir"] +  "/reference/common_snps/snps_data.tsv",
-        snps_1000g = output_dict["outdir"] +  "/reference/common_snps/snps_1000g.tsv",
-        bed = output_dict["outdir"] +  "/reference/common_snps/subset_data.pgen",
-        bim = output_dict["outdir"] +  "/reference/common_snps/subset_data.pvar",
-        fam = output_dict["outdir"] +  "/reference/common_snps/subset_data.psam",
-        bed_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pgen",
-        bim_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pvar",
-        fam_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.psam",
-    resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"]
-    threads: reference_ancestry_predictions_dict["reference_common_snps_threads"]
-    params:
-        bim_1000 = "/opt/1000G/all_phase3_filtered.pvar",
-        infile =  output_dict["outdir"] + "/reference/reference",
-        infile_1000g = "/opt/1000G/all_phase3_filtered",
-        out = output_dict["outdir"] +  "/reference/common_snps/subset_data",
-        out_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g",
-        sif = input_dict["singularity_image"],
-        bind = input_dict["bind_path"]
-    shell:
-        """
-        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {params.bim_1000} > {output.snps_1000g}
-        singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.bim_1000} {input.bim} > {output.snps_data}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --extract {output.snps_data} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
-        singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile_1000g} --extract {output.snps_1000g} --make-pgen --out {params.out_1000g}
-        """
+elif os.path.exists(snp_dict["ref_snp"] + ".bed"):
+
+    ### convert bed plink to pgen plink
+    rule reference_vcf2plink:
+        input:
+            snp_dict["ref_snp"] + ".bed"
+        output:
+            bed = output_dict["outdir"] + "/reference/reference.pgen",
+            bim = output_dict["outdir"] + "/reference/reference.pvar",
+            fam = output_dict["outdir"] + "/reference/reference.psam"
+        resources:
+            mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_vcf2plink_memory"],
+            disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_vcf2plink_memory"]
+        threads: reference_ancestry_predictions_dict["reference_vcf2plink_threads"]
+        params:
+            sif = input_dict["singularity_image"],
+            bind = input_dict["bind_path"],
+            ref = output_dict["outdir"] + "/reference/reference",
+            infile = snp_dict["ref_snp"]
+        shell:
+            """
+            singularity exec --bind {params.bind} {params.sif} plink2 --bfile {params.infile} --make-pgen --out {params.ref}
+            """
+
+    ### Pull just common SNPs between two groups ###
+    rule reference_common_snps:
+        input:
+            bed = output_dict["outdir"] + "/reference/reference.pgen",
+            bim = output_dict["outdir"] + "/reference/reference.pvar",
+            fam = output_dict["outdir"] + "/reference/reference.psam"
+        output:
+            snps_data = output_dict["outdir"] +  "/reference/common_snps/snps_data.tsv",
+            snps_1000g = output_dict["outdir"] +  "/reference/common_snps/snps_1000g.tsv",
+            bed = output_dict["outdir"] +  "/reference/common_snps/subset_data.pgen",
+            bim = output_dict["outdir"] +  "/reference/common_snps/subset_data.pvar",
+            fam = output_dict["outdir"] +  "/reference/common_snps/subset_data.psam",
+            bed_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pgen",
+            bim_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pvar",
+            fam_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.psam",
+        resources:
+            mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"],
+            disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"]
+        threads: reference_ancestry_predictions_dict["reference_common_snps_threads"]
+        params:
+            bim_1000 = "/opt/1000G/all_phase3_filtered.pvar",
+            infile =  output_dict["outdir"] + "/reference/reference",
+            infile_1000g = "/opt/1000G/all_phase3_filtered",
+            out = output_dict["outdir"] +  "/reference/common_snps/subset_data",
+            out_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g",
+            sif = input_dict["singularity_image"],
+            bind = input_dict["bind_path"]
+        shell:
+            """
+            singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {params.bim_1000} > {output.snps_1000g}
+            singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.bim_1000} {input.bim} > {output.snps_data}
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --extract {output.snps_data} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile_1000g} --extract {output.snps_1000g} --make-pgen --out {params.out_1000g}
+            """
+
+else:
+
+    ### Pull just common SNPs between two groups ###
+    rule reference_common_snps:
+        input:
+            bed = snp_dict["ref_snp"] + ".pgen",
+            bim = snp_dict["ref_snp"] + ".pvar",
+            fam = snp_dict["ref_snp"] + ".psam"
+        output:
+            snps_data = output_dict["outdir"] +  "/reference/common_snps/snps_data.tsv",
+            snps_1000g = output_dict["outdir"] +  "/reference/common_snps/snps_1000g.tsv",
+            bed = output_dict["outdir"] +  "/reference/common_snps/subset_data.pgen",
+            bim = output_dict["outdir"] +  "/reference/common_snps/subset_data.pvar",
+            fam = output_dict["outdir"] +  "/reference/common_snps/subset_data.psam",
+            bed_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pgen",
+            bim_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.pvar",
+            fam_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g.psam",
+        resources:
+            mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"],
+            disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_common_snps_memory"]
+        threads: reference_ancestry_predictions_dict["reference_common_snps_threads"]
+        params:
+            bim_1000 = "/opt/1000G/all_phase3_filtered.pvar",
+            infile =  output_dict["outdir"] + "/reference/reference",
+            infile_1000g = "/opt/1000G/all_phase3_filtered",
+            out = output_dict["outdir"] +  "/reference/common_snps/subset_data",
+            out_1000g = output_dict["outdir"] +  "/reference/common_snps/subset_1000g",
+            sif = input_dict["singularity_image"],
+            bind = input_dict["bind_path"]
+        shell:
+            """
+            singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {input.bim} {params.bim_1000} > {output.snps_1000g}
+            singularity exec --bind {params.bind} {params.sif} awk 'NR==FNR{{a[$1,$2,$4,$5];next}} ($1,$2,$4,$5) in a{{print $3}}' {params.bim_1000} {input.bim} > {output.snps_data}
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile} --extract {output.snps_data} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out}
+            singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.infile_1000g} --extract {output.snps_1000g} --make-pgen --out {params.out_1000g}
+            """
+
+
 
 ### Prune with --indep,
 rule reference_prune_1000g:
@@ -291,7 +391,7 @@ rule reference_freebayes_comparison:
         tsv = output_dict["outdir"] + "/reference/pca_sex_checks_original/ancestry_assignments.tsv",
         sc_data = expand(output_dict["outdir"] + "/{pool}/individual_{individual}/pca_sex_checks_original/ancestry_assignments.tsv", zip, pool=samples.Pool, individual=samples.Individual)
     output:
-        anc_fig = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref_identified.png"
+        anc_fig = output_dict["outdir"] + "/ref_sc_ancestry_prediction_comparison/assignments_probabilities_w_ref.png"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_freebayes_comparison_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_freebayes_comparison_memory"]

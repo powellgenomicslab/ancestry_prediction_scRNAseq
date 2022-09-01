@@ -22,8 +22,9 @@ samples_file <- c(arguments[4,])
 
 print("Reading in samples dataframe.")
 samples <- fread(samples_file, sep = "\t")
-colnames(samples) <- c("Pool", "N")
+colnames(samples) <- c("Pool", "Individual")
 pools <- unique(samples$Pool)
+indiv <- unique(samples$Individual)
 
 
 
@@ -36,7 +37,7 @@ names(individuals) <- pools
 
 ### Read in reference SNP-based ancestry predictions ###
 ref_df <- fread(ref_predictions)
-
+ref_df <- ref_df[IID %in% indiv]
 
 
 ## Read in predictions ##
@@ -252,15 +253,21 @@ anc_joined_long_ref$Annotation <- ifelse(as.character(anc_joined_long_ref$ref_sn
 
 
 ### Make figure of stacked combined with ref ### 
+base_colors <- colors[1:5]
+
 p_probabilities_ref <- ggplot(anc_joined_long_ref, aes(paste0(IID, "-",Pool), value, fill = variable)) +
     geom_bar(position = "stack", stat = "identity") +
     theme_classic() +
     facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freebayes")) ~ ref_snp_ancestry, scales="free", space="free_x") +
-    scale_fill_manual(values = colors[1:5]) +
+    scale_fill_manual(values = base_colors) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
             axis.title.x=element_blank()) +
     geom_text(aes(label = ifelse(Annotation == "Incorrect", "X", ""), y = 0.9),  vjust = 1) +
     ylab("Probability")
+
+
+pred_colors <- base_colors[levels(anc_joined_long_ref$ref_snp_ancestry)[levels(anc_joined_long_ref$ref_snp_ancestry) %in% unique(anc_joined_long_ref$ref_snp_ancestry)]]
+
 
 # Generate the ggplot2 plot grob
 g_ref <- grid.force(ggplotGrob(p_probabilities_ref))
@@ -280,50 +287,21 @@ strip_bg_gpath_ref <- grobs_df_ref$gPath_full[grepl(pattern = ".*strip\\.backgro
 
 
 # Edit the grobs
-for (i in 1:length(strip_bg_gpath_ref)){
-  g_ref <- editGrob(grob = g_ref, gPath = strip_bg_gpath_ref[i], gp = gpar(fill = colors[levels(anc_joined_long_ref$ref_snp_ancestry)[i]]))
+if (any(is.na(anc_joined_long_ref$ref_snp_ancestry))) {
+    for (i in 1:(length(strip_bg_gpath_ref) - 1)){
+        g_ref <- editGrob(grob = g_ref, gPath = strip_bg_gpath_ref[i], gp = gpar(fill = pred_colors[i]))
+    }
+        g_ref <- editGrob(grob = g_ref, gPath = strip_bg_gpath_ref[i+1], gp = gpar(fill = "white"))
+
+} else {
+    for (i in 1:length(strip_bg_gpath_ref)){
+        g_ref <- editGrob(grob = g_ref, gPath = strip_bg_gpath_ref[i], gp = gpar(fill = pred_colors[i]))
+    }
 }
 
-ggsave(g_ref, filename = paste0(outdir,"assignments_probabilities_w_ref.png"), width = 10, height = 7)
+ggsave(g_ref, filename = paste0(outdir,"assignments_probabilities_w_ref.png"), width = 1 + 0.15 * nrow(unique(anc_joined_long_ref[,c("IID", "Pool")])), height = 4.5)
 
 
 
 
-
-
-
-### Make figure of stacked combined with ref ### 
-p_probabilities_ref_noNA <- ggplot(anc_joined_long_ref[!is.na(Pool) & !is.na(IID)], aes(paste0(IID, "-",Pool), value, fill = variable)) +
-    geom_bar(position = "stack", stat = "identity") +
-    theme_classic() +
-    facet_grid(factor(gsub(" ", "\n", Software), levels =  c("Reference", "Freebayes")) ~ ref_snp_ancestry, scales="free", space="free_x") +
-    scale_fill_manual(values = colors[1:5]) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-            axis.title.x=element_blank()) +
-    geom_text(aes(label = ifelse(Annotation == "Incorrect", "X", ""), y = 0.9),  vjust = 1) +
-    ylab("Probability")
-
-# Generate the ggplot2 plot grob
-g_ref_noNA <- grid.force(ggplotGrob(p_probabilities_ref_noNA))
-# Get the names of grobs and their gPaths into a data.frame structure
-grobs_df_ref_noNA <- do.call(cbind.data.frame, grid.ls(g_ref_noNA, print = FALSE))
-# Build optimal gPaths that will be later used to identify grobs and edit them
-grobs_df_ref_noNA$gPath_full <- paste(grobs_df_ref_noNA$gPath, grobs_df_ref_noNA$name, sep = "::")
-grobs_df_ref_noNA$gPath_full <- gsub(pattern = "layout::", 
-                            replacement = "", 
-                            x = grobs_df_ref_noNA$gPath_full, 
-                            fixed = TRUE)
-
-
-# Get the gPaths of the strip background grobs
-strip_bg_gpath_ref_noNA <- grobs_df_ref_noNA$gPath_full[grepl(pattern = ".*strip\\.background.x.*", 
-                                            x = grobs_df_ref_noNA$gPath_full)]
-
-
-# Edit the grobs
-for (i in 1:length(strip_bg_gpath_ref_noNA)){
-  g_ref_noNA <- editGrob(grob = g_ref_noNA, gPath = strip_bg_gpath_ref_noNA[i], gp = gpar(fill = colors[levels(anc_joined_long_ref[!is.na(Pool) & !is.na(IID)]$ref_snp_ancestry)[i]]))
-}
-
-ggsave(g_ref_noNA, filename = paste0(outdir,"assignments_probabilities_w_ref_identified.png"), width = 10, height = 7)
 
