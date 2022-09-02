@@ -18,6 +18,8 @@ The general steps are:
 
 #. :ref:`Freebayes SNP Calling <freebayes>` :bdg-success-line:`Required`
 
+#. :ref:`Merge Freebayes Results into Single File <merge_freebayes>` :bdg-success-line:`Required`
+
 #. :ref:`Lift hg38 to hg19 <lift>` :bdg-primary-line:`Optional`
 
 #. :ref:`Convert vcf to Plink <vcf2plink>` :bdg-success-line:`Required`
@@ -32,11 +34,11 @@ The general steps are:
 
 #. :ref:`Prune the SNPs in LD <prune>`  :bdg-success-line:`Required`
 
-#. :ref:`Filter the 1000G and Freebayes SNPs for Pruned SNPs <filter>`  :bdg-success-line:`Required`
+#. :ref:`Filter 1000G SNPs for Pruned SNPs <filter_1000>`  :bdg-success-line:`Required`
 
-#. :ref:`Update Chromosome IDs <chr_update>`  :bdg-success-line:`Required`
+#. :ref:`Filter Freebayes SNPs for Pruned SNPs <filter_data>`  :bdg-success-line:`Required`
 
-#. :ref:`Calculate PCs for 1000G <pcs>`  :bdg-success-line:`Required`
+#. :ref:`Calculate PCs using 1000G <pcs>`  :bdg-success-line:`Required`
 
 #. :ref:`Project 1000G and Freebayes Data in PCs <pc_projection>`  :bdg-success-line:`Required`
 
@@ -79,7 +81,7 @@ Steps
 
 If you have multiple individuals per capture, you will need to do this step but if you only have one individual in your pool, you do not have to split the bam by individuals and you can proced directly to :ref:`2. Index Bam File(s)<index>`
 
-In preparation for this step, we set some additional parameters and create the required output directory:
+In preparation for this step, we set some additional parameters and create the required output directory.
 The parameters that we use for the command in this step are 
 
 .. code-block:: bash
@@ -143,42 +145,69 @@ The ``$BAM`` will be either your original bam file (if did not subset by individ
   The time for this step will vary greatly depending on the number of reads per capture captured and the number of cells per individual.
 
 
-Freebayes will be used to call SNP genotypes from the bam file.
+Freebayes will be used to call SNP genotypes from the bam file using known common SNP genotype locations based on 1000G data.
+In order to expedite this process, we suggest running each chromosome in parallel.
 
-You will need a list of common SNPs to indicate where freebayes should search for variants in the bam.
-We have provided common SNP location bed files that can be used for calling SNPs with freebayes filtered by minor allele frequency.
-The files contain SNPs on either hg19/GRCh37 or hg38/GRCh38 and either have 'chr' encoding or not
+We have provided common SNP location bed files that can be used for calling SNPs with freebayes filtered by minor allele frequency for each chromosome.
+The files contain SNPs on either hg19/GRCh37 or hg38/GRCh38 and either have 'chr' encoding or not for each chromosome ('chr1' vs 1) and are located in the ``/opt`` directory in the ``ancestry_prediction_scRNAseq.sif`` image.
+You will be able to use these files from directly within the ``ancestry_prediction_scRNAseq.sif`` image.
+The table below explains the location that you should use depending on your data.
+The ``*`` indicates that there is a different file for each chromosome from 1 to 22.
 
++----------------------+------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Genome               | .. centered:: Chr Encoding   | .. centered:: vcf File                                                                                                                                            |
+|                      |                              |                                                                                                                                                                   |
+|                      |                              |                                                                                                                                                                   |
++======================+==============================+===================================================================================================================================================================+
+| GRCh37               |  .. centered:: No 'chr'      | .. centered:: ``/opt/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr_*.bed``                                                      |
+|                      +------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                      | .. centered:: 'chr' encoding | .. centered:: ``/opt/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding_chr*.bed``                                       |
++----------------------+------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GRCh38               |  .. centered:: No 'chr'      | .. centered:: ``/opt/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_*.bed``                                                      |
+|                      +------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                      | .. centered:: 'chr' encoding | .. centered:: ``/opt/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding/GRCh38_1000G_MAF0.01_GeneFiltered_ChrEncoding_chr*.bed``                                       |
++----------------------+------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 Define some variables to execute CrossMap to lift the data from hg38 to hg19.
-The ``$TARGETS`` is the :ref:`common SNP location <common_snps>` file in the :doc:`../Install` documentation.
+The ``$TARGETS`` is the the bed file containing the common SNP locations in the ``ancestry_prediction_scRNAseq.sif`` image.
+For example for chromosome 1:
 
 .. code-block:: bash
 
   N=8
-  TARGETS=/opt/ancestry_prediction_scRNAseq/refs/GRCh37_1000G_MAF0.01_GeneFiltered_ChrEncoding.bed ## Change this to the correct chain file for your data
+  TARGETS=/opt/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr/GRCh37_1000G_MAF0.01_GeneFiltered_NoChr_1.bed
   FASTA=/path/to/reference/fasta.fa
 
 
-
-Run freebayes to identify the SNP genotyeps for the individual in the bam file:
+Here's an example command to run freebayes to identify the SNP genotyeps for the individual in the bam file for chromosome 1 but as we mentioned above, we suggest that you run each chromosome in parallel to expedite this step:
 
 .. code-block:: bash
 
   singularity exec --bind $BIND,/tmp $SIF fasta_generate_regions.py $FASTA.fai {params.regions} > $OUTDIR/regions
 
   export TMPDIR=/tmp
-  singularity exec --bind $BIND,/tmp $SIF freebayes-parallel $OUTDIR/regionsS $N -f $FASTA -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets $TARGETS $BAM > $OUTDIR/freebayes/freebayes.vcf
+  singularity exec --bind $BIND,/tmp $SIF freebayes-parallel $OUTDIR/regionsS $N -f $FASTA -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets $TARGETS $BAM > $OUTDIR/freebayes_chr1.vcf
 
 
+.. _merge_freebayes:
 
+4. Merge Freebayes Results
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:bdg-success-line:`Required`
+
+Since we ran freebayes separately on each chromosome, we need to combine each of the results into a single file for downstream processing:
+
+.. code-block:: bash
+
+  singularity exec --bind $BIND $SIF bcftools concat -Ov $OUTDIR/freebayes_chr*.vcf > $OUTDIR/freebayes.vcf
 
 
 
 .. _lift:
 
-4. Lift hg38 to hg19 
+5. Lift hg38 to hg19 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-primary-line:`Optional`
@@ -187,6 +216,8 @@ Run freebayes to identify the SNP genotyeps for the individual in the bam file:
   :class: seealso
 
   < 10 min
+
+We currently only provide reference 100G data for ancestry annotation on hg19 (GCh37).
 
 If your sequence data was aligned to hg38 (GRCh38), you will need to lift it to hg19 for ancestry annotation with 1000G data.
 
@@ -209,13 +240,13 @@ Run CrossMap to lift the data from hg19 to hg38:
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF CrossMap.py vcf $CHAIN $OUTDIR/freebayes/freebayes.vcf $FASTA $OUTDIR/freebayes/freebayes_hg19.vcf
+  singularity exec --bind $BIND $SIF CrossMap.py vcf $CHAIN $OUTDIR/freebayes.vcf $FASTA $OUTDIR/freebayes_hg19.vcf
 
 
 
 .. _vcf2plink:
 
-5. Convert vcf to Plink 
+6. Convert vcf to Plink 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -227,11 +258,11 @@ Run CrossMap to lift the data from hg19 to hg38:
 
 
 First, convert the vcf to the plink2 pgen files. We use ``max-alleles 2`` because downstream softwares won't be able to deal with multi-allelic sites.
-The ``$VCF`` will be either ``$OUTDIR/freebayes/freebayes.vcf`` (if your sequence data was mapped to hg19/GRCh37) or ``$OUTDIR/freebayes/freebayes_hg19.vcf`` (if your sequence data was mapped to hg38/GRCh38).
+The ``$VCF`` will be either ``$OUTDIR/freebayes.vcf`` (if your sequence data was mapped to hg19/GRCh37) or ``$OUTDIR/freebayes_hg19.vcf`` (if your sequence data was mapped to hg38/GRCh38).
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF plink2 --vcf $VCF --make-pgen --out $OUTDIR/freebayes/freebayes --max-alleles 2
+  singularity exec --bind $BIND $SIF plink2 --vcf $VCF --make-pgen --out $OUTDIR/freebayes --max-alleles 2
 
 
 Freebayes doesn't provide an ID for each SNP that it calls but that is important for downstream SNP filtering functions so we will create a pvar file that has IDs we will make from the chromosome, basepair, allele 1 and allele 2
@@ -239,17 +270,17 @@ Freebayes doesn't provide an ID for each SNP that it calls but that is important
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/freebayes.pvar $OUTDIR/freebayes/freebayes.pvar_original
-  singularity exec --bind $BIND $SIF sed -i 's/^chr//g' $OUTDIR/freebayes/freebayes.pvar
-  singularity exec --bind $BIND $SIF grep "#" $OUTDIR/freebayes/freebayes.pvar > $OUTDIR/freebayes/freebayes_tmp.pvar
-  singularity exec --bind $BIND $SIF grep -v "#" $OUTDIR/freebayes/freebayes.pvar | awk 'BEGIN{FS=OFS="\\t"}{print $1 FS $2 FS $1 "_" $2 "_" $4 "_" $5 FS $4 FS $5 FS $6 FS $7}' >> $OUTDIR/freebayes/freebayes_tmp.pvar
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/freebayes_tmp.pvar $OUTDIR/freebayes/freebayes.pvar
+  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes.pvar $OUTDIR/freebayes.pvar_original
+  singularity exec --bind $BIND $SIF sed -i 's/^chr//g' $OUTDIR/freebayes.pvar ### The 1000G reference that will be used doesn not have 'chr' enccoding so we will remove it if used in your files
+  singularity exec --bind $BIND $SIF grep "#" $OUTDIR/freebayes.pvar > $OUTDIR/freebayes_tmp.pvar
+  singularity exec --bind $BIND $SIF grep -v "#" $OUTDIR/freebayes.pvar | awk 'BEGIN{FS=OFS="\\t"}{print $1 FS $2 FS $1 "_" $2 "_" $4 "_" $5 FS $4 FS $5 FS $6 FS $7}' >> $OUTDIR/freebayes_tmp.pvar
+  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes_tmp.pvar $OUTDIR/freebayes.pvar
 
 
 
 .. _common_snps:
 
-6. Identify Common SNPs Between 1000G Data and Your Data
+7. Identify Common SNPs Between 1000G Data and Your Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -262,10 +293,10 @@ Freebayes doesn't provide an ID for each SNP that it calls but that is important
 
 Next, we need to subset the variants for just those that are in common between the SNP genotypes called from freebayes and those called from the 1000G data.
 
-.. admonition:: :octicon:`stopwatch` Expected Timing
+.. admonition:: Note
   :class: seealso
 
-  The 1000G data is located in the Singularity image as demonstrated in the below commands.
+  The 1000G data is located in the Singularity image at ``/opt/1000G/all_phase3_filtered.pvar`` so you can use them directly from that location as demonstrated in the below commands.
 
 
 Use awk to pull SNPs that are on the same chromosomes and have the same alleles
@@ -273,15 +304,15 @@ Use awk to pull SNPs that are on the same chromosomes and have the same alleles
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1,$2,$4,$5];next} ($1,$2,$4,$5) in a{print $3}' $OUTDIR/freebayes/freebayes.pvar /opt/1000G/all_phase3_filtered.pvar | sed '/^$/d' > $OUTDIR/freebayes/common_snps/snps_1000g.tsv
-  singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1,$2,$4,$5];next} ($1,$2,$4,$5) in a{print $3}' /opt/1000G/all_phase3_filtered.pvar $OUTDIR/freebayes/freebayes.pvar | sed '/^$/d' > $OUTDIR/freebayes/common_snps/snps_data.tsv
+  singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1,$2,$4,$5];next} ($1,$2,$4,$5) in a{print $3}' $OUTDIR/freebayes.pvar /opt/1000G/all_phase3_filtered.pvar | sed '/^$/d' > $OUTDIR/common_snps/snps_1000g.tsv
+  singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1,$2,$4,$5];next} ($1,$2,$4,$5) in a{print $3}' /opt/1000G/all_phase3_filtered.pvar $OUTDIR/freebayes.pvar | sed '/^$/d' > $OUTDIR/common_snps/snps_data.tsv
 
 
 
 
 .. _common_snps_pools:
 
-7. Get the SNPs in Common Across all Pools 
+8. Get the SNPs in Common Across all Pools 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -321,7 +352,7 @@ The metadata file is the :ref:`Sample Metadata File <sample meta>` in the :doc:`
 
 .. _subset:
 
-8. Subset Data for Common SNPs
+9. Subset 1000G Data for Common SNPs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -335,20 +366,29 @@ The metadata file is the :ref:`Sample Metadata File <sample meta>` in the :doc:`
 After you have received the common SNPs file across all sites (``$COMMON_SNPS``), you can subset the 1000G and freebayes SNP data to the common SNPs.
 We will use ``--rm-dup force-first`` to help deal with possible duplicate entries for the same SNP called by freebayes.
 
+.. admonition:: Note
+  :class: seealso
+
+  The ``/opt/1000G/all_phase3_filtered`` path below is the 1000G reference base filename in the ``ancestry_prediction_scRNAseq.sif`` singularity image.
+  You can use the file directly from the image.
+
 .. code-block:: bash
 
+  mkdir $OUTDIR/filter_1000g
+
   ### First need to subset the 1000g snps for the SNPs common to all sites, pools and individuals ###
-  singularity exec --bind $BIND $SIF Rscript /opt/ancestry_prediction_scRNAseq/scripts/subset_1000g_snps.R $COMMON_SNPS $OUTDIR/freebayes/common_snps/snps_1000g.tsv $OUTDIR
+  singularity exec --bind $BIND $SIF grep -v "#" /opt/1000G/all_phase3_filtered.pvar | awk 'BEGIN{{FS=OFS="\t"}}{{print $3}}' > $OUTDIR/filter_1000g/all_1000g_snps.tsv
+  singularity exec --bind $BIND $SIF Rscript /opt/ancestry_prediction_scRNAseq/scripts/subset_1000g_snps.R $COMMON_SNPS $OUTDIR/filter_1000g/all_1000g_snps.tsv $OUTDIR
 
   ### Subset the freebayes-called snps for the new snps ###
-  singularity exec --bind $BIND $SIF plink2 --threads {threads} --pfile {params.infile} --extract {params.snps} --make-pgen 'psam-cols='fid,parents,sex,phenos --out {params.out} --rm-dup force-first
-  singularity exec --bind $BIND $SIF plink2 --threads {threads} --pfile {params.infile_1000g} --extract {params.snps_1000g} --make-pgen --out {params.out_1000g}
+  singularity exec --bind $BIND $SIF plink2 --threads 2 --pfile /opt/1000G/all_phase3_filtered --extract $OUTDIR/snps_1000g_common_across_sites.tsv --make-pgen --out $OUTDIR/filter_1000g/subset_1000g
+
 
 
 
 .. _prune:
 
-9. Prune the SNPs in LD 
+10. Prune the SNPs in LD 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -363,15 +403,15 @@ Next, filter the SNPs for those that are not in linkage disequilibrium so we hav
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/freebayes/common_snps/subset_1000g \
+  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/filter_1000g/subset_1000g \
       --indep-pairwise 50 5 0.5 \
-      --out $OUTDIR/freebayes/common_snps/subset_pruned_1000g
+      --out $OUTDIR/filter_1000g/subset_pruned_1000g
 
 
 
-.. _filter:
+.. _filter_1000:
 
-10. Filter the 1000G and Freebayes SNPs for Pruned SNPs 
+11. Filter the 1000G and Freebayes SNPs for Pruned SNPs 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -381,41 +421,81 @@ Next, filter the SNPs for those that are not in linkage disequilibrium so we hav
 
   < 5 min
 
+We will filter the 1000G data for the SNPs in common across all sites.
+In addition, we'll ensure that the chromosome encoding for chromosomes X, Y and mitochondria are consistent with what is required for plink.
+
 The only variable that needs to be defined is ``$N`` which is the number of threads you would like to use for this command:
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/freebayes/common_snps/subset_1000g --extract $OUTDIR/freebayes/common_snps/subset_pruned_1000g.prune.out --rm-dup 'force-first' --make-pgen --out $OUTDIR/freebayes/common_snps/subset_pruned_1000g
+  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/filter_1000g/subset_1000g --extract $OUTDIR/filter_1000g/subset_pruned_1000g.prune.out --make-pgen --out $OUTDIR/filter_1000g/subset_pruned_1000g
+  
+  singularity exec --bind $BIND $SIF sed -i 's/^X/23/g' $OUTDIR/filter_1000g/subset_pruned_1000g.pvar
+  singularity exec --bind $BIND $SIF sed -i 's/^Y/24/g' $OUTDIR/filter_1000g/subset_pruned_1000g.pvar
+  singularity exec --bind $BIND $SIF sed -i 's/^XY/25/g' $OUTDIR/filter_1000g/subset_pruned_1000g.pvar
+  singularity exec --bind $BIND $SIF sed -i 's/^MT/26/g' $OUTDIR/filter_1000g/subset_pruned_1000g.pvar
+
+
+
+
+.. _filter_data:
+
+12. Filter Freebayes SNPs for Pruned SNPs 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:bdg-success-line:`Required`
+
+.. admonition:: :octicon:`stopwatch` Expected Timing
+  :class: seealso
+
+  < 5 min
+
+The only variable that needs to be defined is ``$N`` which is the number of threads you would like to use for this command.
+The ``$COMMON_SNPS`` is the common SNPs file across all sites:
+
+.. code-block:: bash
+
+  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/freebayes --extract $COMMON_SNPS --rm-dup 'force-first' --make-pgen --out $OUTDIR/common_snps/subset_data
 
 
   ### If have comments in the freebayes pvar file, need to transfer them
-  if [[ $(grep "##" $OUTDIR/freebayes/common_snps/subset_data.pvar | wc -l) > 0 ]]
+  if [[ $(grep "##" $OUTDIR/common_snps/subset_data.pvar | wc -l) > 0 ]]
   then
-      singularity exec --bind $BIND $SIF grep "##" $OUTDIR/freebayes/common_snps/subset_data.pvar > $OUTDIR/freebayes/common_snps/subset_pruned_data_1000g_key.txt
+      singularity exec --bind $BIND $SIF grep "##" $OUTDIR/common_snps/subset_data.pvar > $OUTDIR/common_snps/subset_pruned_data_1000g_key.txt
   fi
 
-  singularity exec --bind $BIND $SIF awk -F"\\t" 'BEGIN{OFS=FS = "\\t"} NR==FNR{a[$1 FS $2 FS $4 FS $5] = $0; next} {ind = $1 FS $2 FS $4 FS $5} ind in a {print a[ind], $3}' $OUTDIR/freebayes/common_snps/subset_pruned_1000g.pvar $OUTDIR/freebayes/common_snps/subset_data.pvar | \
-      singularity exec --bind $BIND $SIF grep -v "##" >> $OUTDIR/freebayes/common_snps/subset_pruned_data_1000g_key.txt
-  singularity exec --bind $BIND $SIF grep -v "##" $OUTDIR/freebayes/common_snps/subset_pruned_data_1000g_key.txt | \
-      singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}{print $NF}' > $OUTDIR/freebayes/common_snps/subset_data.prune.out
-  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile {params.infile} --extract $OUTDIR/freebayes/common_snps/subset_data.prune.out --rm-dup 'force-first' --make-pgen 'psam-cols='fid,parents,sex,phenos --out $OUTDIR/freebayes/common_snps/subset_pruned_data
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/common_snps/subset_pruned_data.pvar $OUTDIR/freebayes/common_snps/subset_pruned_data_original.pvar
-  singularity exec --bind $BIND $SIF grep -v "#" $OUTDIR/freebayes/common_snps/subset_pruned_data_original.pvar | \
-      singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}{print($3)}' > $OUTDIR/freebayes/common_snps/SNPs2keep.txt
-  singularity exec --bind $BIND $SIF grep "#CHROM" $OUTDIR/freebayes/common_snps/subset_pruned_data_1000g_key.txt > $OUTDIR/freebayes/common_snps/subset_pruned_data.pvar
-  singularity exec --bind $BIND $SIF grep -Ff $OUTDIR/freebayes/common_snps/SNPs2keep.txt $OUTDIR/freebayes/common_snps/subset_pruned_data_1000g_key.txt >> $OUTDIR/freebayes/common_snps/subset_pruned_data.pvar
-  singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}NF{NF-=1};1' < $OUTDIR/freebayes/common_snps/subset_pruned_data.pvar > $OUTDIR/freebayes/common_snps/subset_pruned_data_temp.pvar
-  singularity exec --bind $BIND $SIF grep "##" $OUTDIR/freebayes/common_snps/subset_pruned_1000g.pvar > $OUTDIR/freebayes/common_snps/subset_pruned_data.pvar
-  singularity exec --bind $BIND $SIF sed -i "/^$/d" $OUTDIR/freebayes/common_snps/subset_pruned_data_temp.pvar
-  singularity exec --bind $BIND $SIF cat $OUTDIR/freebayes/common_snps/subset_pruned_data_temp.pvar >> $OUTDIR/freebayes/common_snps/subset_pruned_data.pvar
-  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/freebayes/common_snps/subset_pruned_1000g --rm-dup 'force-first' --make-bed --out $OUTDIR/freebayes/common_snps/subset_pruned_1000g 
+  singularity exec --bind $BIND $SIF awk -F"\\t" 'BEGIN{OFS=FS = "\\t"} NR==FNR{a[$1 FS $2 FS $4 FS $5] = $0; next} {ind = $1 FS $2 FS $4 FS $5} ind in a {print a[ind], $3}' $OUTDIR/filter_1000g/subset_pruned_1000g.pvar $OUTDIR/common_snps/subset_data.pvar | \
+    singularity exec --bind $BIND $SIF grep -v "##" >> $OUTDIR/common_snps/subset_pruned_data_1000g_key.txt
 
+  singularity exec --bind $BIND $SIF grep -v "##" $OUTDIR/common_snps/subset_pruned_data_1000g_key.txt | \
+    singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}{print $NF}' > $OUTDIR/common_snps/subset_data.prune.out
+
+  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile common_snps/subset_data --extract $OUTDIR/common_snps/subset_data.prune.out --rm-dup 'force-first' --make-pgen 'psam-cols='fid,parents,sex,phenos --out $OUTDIR/common_snps/subset_pruned_data
+
+  singularity exec --bind $BIND $SIF cp $OUTDIR/common_snps/subset_pruned_data.pvar $OUTDIR/common_snps/subset_pruned_data_original.pvar
+
+  singularity exec --bind $BIND $SIF grep -v "#" $OUTDIR/common_snps/subset_pruned_data_original.pvar | \
+    singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}{print($3)}' > $OUTDIR/common_snps/SNPs2keep.txt
+
+  singularity exec --bind $BIND $SIF grep "#CHROM" $OUTDIR/common_snps/subset_pruned_data_1000g_key.txt > $OUTDIR/common_snps/subset_pruned_data.pvar
+
+  singularity exec --bind $BIND $SIF grep -Ff $OUTDIR/common_snps/SNPs2keep.txt $OUTDIR/common_snps/subset_pruned_data_1000g_key.txt >> $OUTDIR/common_snps/subset_pruned_data.pvar
+
+  singularity exec --bind $BIND $SIF awk 'BEGIN{FS=OFS="\t"}NF{NF-=1};1' < $OUTDIR/common_snps/subset_pruned_data.pvar > $OUTDIR/common_snps/subset_pruned_data_temp.pvar
+
+  singularity exec --bind $BIND $SIF grep "##" $OUTDIR/filter_1000g/subset_pruned_1000g.pvar > $OUTDIR/common_snps/subset_pruned_data.pvar
+
+  singularity exec --bind $BIND $SIF sed -i "/^$/d" $OUTDIR/common_snps/subset_pruned_data_temp.pvar
+
+  singularity exec --bind $BIND $SIF cat $OUTDIR/common_snps/subset_pruned_data_temp.pvar >> $OUTDIR/common_snps/subset_pruned_data.pvar
+
+  singularity exec --bind $BIND $SIF plink2 --rm-dup 'force-first' --threads $N --pfile $OUTDIR/common_snps/subset_pruned_data --make-pgen 'psam-cols='fid,parents,sex,phenos --out $OUTDIR/common_snps/final_subset_pruned_data
 
 
 
 .. _chr_update:
 
-11. Update Chromosome IDs
+13. Update Chromosome IDs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -431,26 +511,17 @@ Update the chromosome IDs to ensure compatibility with plink.
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/common_snps/final_subset_pruned_data.bed $OUTDIR/freebayes/common_snps/split/
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/common_snps/final_subset_pruned_data.bim $OUTDIR/freebayes/common_snps/split/
-  singularity exec --bind $BIND $SIF sed -i 's/^X/23/g' $OUTDIR/freebayes/common_snps/split/final_subset_pruned_data.bim
-  singularity exec --bind $BIND $SIF sed -i 's/^Y/24/g' $OUTDIR/freebayes/common_snps/split/final_subset_pruned_data.bim
-  singularity exec --bind $BIND $SIF sed -i 's/^XY/25/g' $OUTDIR/freebayes/common_snps/split/final_subset_pruned_data.bim
-  singularity exec --bind $BIND $SIF sed -i 's/^MT/26/g' $OUTDIR/freebayes/common_snps/split/final_subset_pruned_data.bim
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/common_snps/final_subset_pruned_data.fam $OUTDIR/freebayes/common_snps/split/
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/common_snps/subset_pruned_1000g.bed $OUTDIR/freebayes/common_snps/split
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/common_snps/subset_pruned_1000g.bim $OUTDIR/freebayes/common_snps/split
-  singularity exec --bind $BIND $SIF cp $OUTDIR/freebayes/common_snps/subset_pruned_1000g.fam $OUTDIR/freebayes/common_snps/split
-  singularity exec --bind $BIND $SIF sed -i 's/^X/23/g' $OUTDIR/freebayes/common_snps/split/subset_pruned_1000g.bim
-  singularity exec --bind $BIND $SIF sed -i 's/^Y/24/g' $OUTDIR/freebayes/common_snps/split/subset_pruned_1000g.bim
-  singularity exec --bind $BIND $SIF sed -i 's/^XY/25/g' $OUTDIR/freebayes/common_snps/split/subset_pruned_1000g.bim
-  singularity exec --bind $BIND $SIF sed -i 's/^MT/26/g' $OUTDIR/freebayes/common_snps/split/subset_pruned_1000g.bim
+
+  singularity exec --bind $BIND $SIF sed -i 's/^X/23/g' $OUTDIR/common_snps/split/final_subset_pruned_data.pvar
+  singularity exec --bind $BIND $SIF sed -i 's/^Y/24/g' $OUTDIR/common_snps/split/final_subset_pruned_data.pvar
+  singularity exec --bind $BIND $SIF sed -i 's/^XY/25/g' $OUTDIR/common_snps/split/final_subset_pruned_data.pvar
+  singularity exec --bind $BIND $SIF sed -i 's/^MT/26/g' $OUTDIR/common_snps/split/final_subset_pruned_data.pvar
 
 
 
 .. _pcs:
 
-12. Calculate PCs for 1000G 
+14. Calculate PCs for 1000G 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -466,16 +537,16 @@ Again, the only additional variable that you need to define is the number of thr
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/freebayes/common_snps/subset_pruned_1000g \
+  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/filter_1000g/subset_pruned_1000g \
       --freq counts \
       --pca allele-wts \
-      --out $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs
+      --out $OUTDIR/filter_1000g/subset_pruned_1000g_pcs
 
 
 
 .. _pc_projection:
 
-13. Project 1000G and Freebayes Data in PCs 
+15. Project 1000G and Freebayes Data in PCs 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -492,24 +563,26 @@ Again, the only additional variable that you need to define is the number of thr
 .. code-block:: bash
 
   export OMP_NUM_THREADS=$N
-  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/freebayes/common_snps/final_subset_pruned_data \
-      --read-freq $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs.acount \
-      --score $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs.eigenvec.allele 2 5 header-read no-mean-imputation \
+
+  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/common_snps/final_subset_pruned_data \
+      --read-freq $OUTDIR/filter_1000g/subset_pruned_1000g_pcs.acount \
+      --score $OUTDIR/filter_1000g/subset_pruned_1000g_pcs.eigenvec.allele 2 5 header-read no-mean-imputation \
               variance-standardize \
       --score-col-nums 6-15 \
-      --out $OUTDIR/freebayes/pca_projection/final_subset_pruned_data_pcs
-  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/freebayes/common_snps/subset_pruned_1000g \
-      --read-freq $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs.acount \
-      --score $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs.eigenvec.allele 2 5 header-read no-mean-imputation \
+      --out $OUTDIR/pca_projection/final_subset_pruned_data_pcs
+
+  singularity exec --bind $BIND $SIF plink2 --threads $N --pfile $OUTDIR/filter_1000g/subset_pruned_1000g \
+      --read-freq $OUTDIR/filter_1000g/subset_pruned_1000g_pcs.acount \
+      --score $OUTDIR/filter_1000g/subset_pruned_1000g_pcs.eigenvec.allele 2 5 header-read no-mean-imputation \
               variance-standardize \
       --score-col-nums 6-15 \
-      --out $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs_projected
+      --out $OUTDIR/filter_1000g/subset_pruned_1000g_pcs_projected
 
 
 
 .. _plot:
 
-14. Plot PC Results 
+16. Plot PC Results 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :bdg-success-line:`Required`
@@ -524,28 +597,77 @@ Lastly, we can predict sample SNP-based ancestry and produce some figures for vi
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND $SIF echo $OUTDIR/freebayes/pca_sex_checks_original/ > $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
-  singularity exec --bind $BIND $SIF echo $OUTDIR/freebayes/pca_projection/final_subset_pruned_data_pcs.sscore >> $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
-  singularity exec --bind $BIND $SIF echo $OUTDIR/freebayes/pca_projection/subset_pruned_1000g_pcs_projected.sscore >> $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
-  singularity exec --bind $BIND $SIF echo $OUTDIR/freebayes/common_snps/subset_1000g.psam >> $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
-  singularity exec --bind $BIND $SIF Rscript /opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R $OUTDIR/freebayes/pca_sex_checks_original/variables.tsv
+  singularity exec --bind $BIND $SIF echo $OUTDIR/pca_sex_checks_original/ > $OUTDIR/pca_sex_checks_original/variables.tsv
+  singularity exec --bind $BIND $SIF echo $OUTDIR/pca_projection/final_subset_pruned_data_pcs.sscore >> $OUTDIR/pca_sex_checks_original/variables.tsv
+  singularity exec --bind $BIND $SIF echo $OUTDIR/filter_1000g/subset_pruned_1000g_pcs_projected.sscore >> $OUTDIR/pca_sex_checks_original/variables.tsv
+  singularity exec --bind $BIND $SIF echo $OUTDIR/common_snps/subset_1000g.psam >> $OUTDIR/pca_sex_checks_original/variables.tsv
+  singularity exec --bind $BIND $SIF Rscript /opt/ancestry_prediction_scRNAseq/scripts/PCA_Projection_Plotting_original.R $OUTDIR/pca_sex_checks_original/variables.tsv
+
+
+
 
 
 Results
 ----------
-After running the final step, you should have the following results directories:
+After running the final step, you should have the following results directories.
+We've highlighted the key results files (``Ancestry_PCAs.png`` and ``ancestry_assignments.tsv``):
 
 .. code-block:: bash
+  :emphasize-lines: 35,36
 
+  .
+  ├── common_snps
+  │   ├── final_subset_pruned_data.log
+  │   ├── final_subset_pruned_data.pgen
+  │   ├── final_subset_pruned_data.psam
+  │   ├── final_subset_pruned_data.pvar
+  │   ├── snps_1000g.tsv
+  │   ├── SNPs2keep.txt
+  │   ├── snps_data.tsv
+  │   ├── subset_data.log
+  │   ├── subset_data.pgen
+  │   ├── subset_data.prune.out
+  │   ├── subset_data.psam
+  │   ├── subset_data.pvar
+  │   ├── subset_pruned_data_1000g_key.txt
+  │   ├── subset_pruned_data.log
+  │   ├── subset_pruned_data_original.pvar
+  │   ├── subset_pruned_data.pgen
+  │   ├── subset_pruned_data.psam
+  │   ├── subset_pruned_data.pvar
+  │   └── subset_pruned_data_temp.pvar
+  ├── freebayes_hg19.vcf
+  ├── freebayes_hg19.vcf.unmap
+  ├── freebayes.log
+  ├── freebayes.pgen
+  ├── freebayes.psam
+  ├── freebayes.pvar
+  ├── freebayes.pvar_original
+  ├── freebayes_tmp.pvar
+  ├── freebayes.vcf
+  ├── pca_projection
+  │   ├── final_subset_pruned_data_pcs.log
+  │   └── final_subset_pruned_data_pcs.sscore
+  └── pca_sex_checks_original
+      ├── ancestry_assignments.tsv
+      ├── Ancestry_PCAs.png
+      └── variables.tsv
 
 
 - The ``Ancestry_PCAs.png`` figure shows the 1000G individual locations in PC space compared to the individuals in each pool. For example:
 
-  .. figure:: _figures/
-      :align: right
-      :figwidth: 300px
+  .. figure:: ../_figures/Ancestry_PCAs_individual.png
+    :align: center
+    :figwidth: 700px
     
 
 - The ``ancestry_assignments.tsv`` file has the annotations and probabilities for each pool. For example:
+
++---------+---------+-----------------+---------------+-----------------+-----------------+-----------------+-----------------+-----------------+-----------------+------------+------------+---------+---------+---------+---------+---------+------------------+
+| FID     | IID     | PC1             | PC2           | PC3             | PC4             | PC5             | PC6             | PC7             | PC8             | PC9        | PC10       | AFR     | AMR     | EAS     | EUR     | SAS     | Final_Assignment |
++=========+=========+=================+===============+=================+=================+=================+=================+=================+=================+============+============+=========+=========+=========+=========+=========+==================+
+| 0       | Pool1   | 0.137           | -0.108        | -0.0250         | -0.042          | 0.032           | -0.042          | 0.001           | -0.021          | -0.086     | -0.019     | 0       | 0       | 1       | 0       | 0       | EAS              |
++---------+---------+-----------------+---------------+-----------------+-----------------+-----------------+-----------------+-----------------+-----------------+------------+------------+---------+---------+---------+---------+---------+------------------+
+
 
 

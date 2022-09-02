@@ -305,16 +305,16 @@ Now that we have provided the path to the SNP genotypes that will be used for an
       .. code-block:: bash
 
         Job counts:
-          count	jobs
-          1	all
-          1	freebayes_combine_results
-          6	freebayes_final_pruning
-          6	freebayes_pca_1000g
-          6	freebayes_pca_project
-          6	freebayes_pca_projection_assign_original
-          6	freebayes_prune_1000g
-          6	subset_common_snps
-          38
+            count   jobs
+            1       all
+            1       freebayes_combine_results
+            6       freebayes_final_pruning
+            1       freebayes_pca_1000g
+            6       freebayes_pca_project
+            6       freebayes_pca_projection_assign_original
+            6       freebayes_prune_1000g
+            1       subset_common_snps
+            28
 
     .. tab-item:: With Reference SNP Genotypes
       :sync: key2
@@ -323,16 +323,16 @@ Now that we have provided the path to the SNP genotypes that will be used for an
 
         Job counts:
           count	jobs
-          1	all
-          1	freebayes_combine_results
-          6	freebayes_final_pruning
-          6	freebayes_pca_1000g
-          6	freebayes_pca_project
-          6	freebayes_pca_projection_assign_original
-          6	freebayes_prune_1000g
-          1	reference_freebayes_comparison
-          6	subset_common_snps
-          39
+          1	        all
+          1	        freebayes_combine_results
+          6	        freebayes_final_pruning
+          1	        freebayes_pca_1000g
+          6	        freebayes_pca_project
+          6	        freebayes_pca_projection_assign_original
+          6	        freebayes_prune_1000g
+          1	        reference_freebayes_comparison
+          1	        subset_common_snps
+          29
 
    .. admonition:: Note
     :class: seealso

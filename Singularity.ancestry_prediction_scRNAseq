@@ -36,6 +36,7 @@ from: continuumio/miniconda3
     apt install -y r-base-dev
     apt install -y  r-cran-devtools
     apt install -y r-cran-caret
+    apt install -y r-cran-tidyverse
     apt-get update
     apt-get install -y libv8-dev
     apt-get update
@@ -137,7 +138,7 @@ from: continuumio/miniconda3
     ### Install R libraries ###
     ## Base helper packages ##
     R --slave -e 'install.packages("V8", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'install.packages("tidyverse", repos = "http://cran.us.r-project.org")'
+#    R --slave -e 'install.packages("tidyverse", repos = "http://cran.us.r-project.org")'
     R --slave -e 'install.packages("data.table", repos = "http://cran.us.r-project.org")'
     R --slave -e 'install.packages("BiocManager")'
     R --slave -e 'install.packages("remotes", repos = "http://cran.us.r-project.org")'
@@ -146,10 +147,10 @@ from: continuumio/miniconda3
     R --slave -e 'install.packages("cowplot", repos = "http://cran.us.r-project.org")'
     R --slave -e 'install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")'
     R --slave -e 'install.packages("colorspace", repos = "http://cran.us.r-project.org")'
-    R --slave -e 'devtools::install_github("kassambara/ggpubr")'
+    R --slave -e 'install.packages("ggpubr", repos = "http://cran.us.r-project.org")'
 
     # ## Other helper packages ##
-    R --slave -e 'devtools::install_github(repo="knausb/vcfR")'
+    R --slave -e 'install.packages("vcfR", repos = "http://cran.us.r-project.org")'
     R --slave -e 'install.packages("Cairo",repo="http://cran.us.r-project.org")' ### Required for Complex Heatmap
     R --slave -e 'BiocManager::install("ComplexHeatmap")'
     R --slave -e 'install.packages("lsa", repos = "http://cran.us.r-project.org")'

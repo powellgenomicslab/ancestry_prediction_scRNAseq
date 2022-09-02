@@ -15,8 +15,8 @@ To download the singularity image:
 
 .. code-block:: bash
 
-  wget https://www.dropbox.com/s/eqm82gv91qjwvki/ancestry_prediction_scRNAseq.sif
-  wget https://www.dropbox.com/s/tubxzl3zmm3cwgk/ancestry_prediction_scRNAseq.sif.md5
+  wget https://www.dropbox.com/s/nnru32uw1ate2gu/ancestry_prediction_scRNAseq.sif
+  wget https://www.dropbox.com/s/pz3h9gzhcn2kgob/ancestry_prediction_scRNAseq.sif.md5
 
 
 Then you should check to make sure that the image downloaded completely by comparing the image md5sum to the original md5sum.

@@ -45,23 +45,28 @@ Preparation of Data Files
     
 .. _bam:
 
-Bam File(s) :bdg-success-line:`Required`
+Bam File(s) 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:bdg-success-line:`Required`
 
 Bam file(s) that contain the aligned sequences from the scRNA-seq.
 
 
 .. _hg19 fasta:
 
-hg19 Reference Fasta File :bdg-success-line:`Required`
+hg19 Reference Fasta File 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:bdg-success-line:`Required`
+
 A reference hg19 fasta that uses the same chr encoding as you bam file (i.e. chromosomes are encoded as ch1 or 1)
 
 
 .. _anno barcodes:
 
-Annotated Barcodes Files :bdg-success-line:`Required`
+Annotated Barcodes Files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:bdg-success-line:`Required`
+
 A tab-separated file that has the barcodes in the first column and the IDs of the individual that they are assigned to in the second column. 
 This file should NOT have a header.
 
@@ -101,8 +106,10 @@ For example:
 
 .. _sample meta:
 
-Sample Metadata File :bdg-success-line:`Required`
+Sample Metadata File 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:bdg-success-line:`Required`
+
 A tab separated file that contains two columns: the first for the Pool and the second for the 
 
 .. admonition:: Note
@@ -131,8 +138,9 @@ A tab separated file that contains two columns: the first for the Pool and the s
 
 .. _ref vcf:
 
-Reference SNP Genotypes vcf :bdg-primary-line:`Optional`
+Reference SNP Genotypes vcf 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:bdg-primary-line:`Optional`
 
 If you have reference SNP genotypes for the individuals in your dataset from microarray or whole exome or genome sequencing,
 we have build funcionality into the pipeline to estimate ancestry based on the referene genotypes and provide comparison between the reference and scRNA-seq predicted ancestry annotations.
@@ -140,8 +148,9 @@ we have build funcionality into the pipeline to estimate ancestry based on the r
 
 .. _hg38 fasta:
 
-hg38 Reference Fasta File :bdg-primary-line:`Optional`
+hg38 Reference Fasta File 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:bdg-primary-line:`Optional`
 
 ONLY NEEDED IF YOUR SEQUENCE DATA WAS MAPPED TO HG38!!!
 

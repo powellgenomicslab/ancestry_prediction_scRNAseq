@@ -14,6 +14,7 @@ To run your dataset(s) manually, procded to the :doc:`ManualCommands` documentat
   :hidden:
 
   ManualCommands
+  ReferenceAnnotation
 
 
 

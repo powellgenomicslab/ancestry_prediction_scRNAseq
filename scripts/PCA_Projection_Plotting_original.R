@@ -110,6 +110,6 @@ ggsave(plot_PCs_medoids, filename = paste0(outdir,"Ancestry_PCAs.png"), height =
 
 fwrite(scores[scores$Plot == "Projected Data Assignments", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments.tsv"), sep = "\t", na = "NA")
 
-if ([1] == pool & samples$Individual[1] == indiv){
+if (samples$Pool[1] == pool & samples$Individual[1] == indiv){
   fwrite(scores[scores$Plot == "1000G Reference", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments_w_ref.tsv"), sep = "\t", na = "NA")
 }

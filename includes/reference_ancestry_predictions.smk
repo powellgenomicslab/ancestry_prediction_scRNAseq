@@ -187,7 +187,6 @@ rule reference_prune_1000g:
         fam = output_dict["outdir"] +  "/reference/common_snps/subset_pruned_data.psam",
         data_1000g_key = output_dict["outdir"] +  "/reference/common_snps/subset_pruned_data_1000g_key.txt",
         SNPs2keep = output_dict["outdir"] +  "/reference/common_snps/SNPs2keep.txt",
-        onek_popu = output_dict["outdir"] +  "/reference/common_snps/subset_pruned_1000g.popu"
     resources:
         mem_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_prune_1000g_memory"],
         disk_per_thread_gb=lambda wildcards, attempt: attempt * reference_ancestry_predictions_dict["reference_prune_1000g_memory"]
@@ -220,7 +219,6 @@ rule reference_prune_1000g:
         singularity exec --bind {params.bind} {params.sif} grep "##" {output.pvar_1000g} > {output.bim}
         singularity exec --bind {params.bind} {params.sif} cat {output.bim_temp} >> {output.bim}
         singularity exec --bind {params.bind} {params.sif} plink2 --threads {threads} --pfile {params.out_1000g} --make-bed --out {params.out_1000g}
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print(0,$1,$5)}}' {params.out_1000g}.psam | singularity exec --bind {params.bind} {params.sif} tail -n +2 > {params.out_1000g}.popu
         """
         
 rule reference_final_pruning: ### put in contingency for duplicated snps - remove from both 1000G and your dataset
