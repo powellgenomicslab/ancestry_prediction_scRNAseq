@@ -129,35 +129,27 @@ If you have reference SNP genotypes (*i.e.* microarray SNP genotype data or whol
     .. tab-item:: With Reference SNP Genotypes
         :sync: key2
 
-        .. code-block:: bash
+      .. code-block:: bash
 
-          Job counts:
-              count   jobs
-              1       all
-              1       common_snps_across_pools
-              132     freebayes
-              1       freebayes_combine_results
-              6       freebayes_common_snps
-              6       freebayes_final_pruning
-              6       freebayes_merge
-              6       freebayes_pca_1000g
-              6       freebayes_pca_project
-              6       freebayes_pca_projection_assign_original
-              6       freebayes_prune_1000g
-              6       freebayes_update_vcf
-              6       freebayes_vcf2plink
-              6       index
-              1       reference_common_snps
-              1       reference_final_pruning
-              1       reference_freebayes_comparison
-              1       reference_pca_1000g
-              1       reference_pca_project
-              1       reference_pca_projection_assign_original
-              1       reference_prune_1000g
-              1       reference_vcf2plink
-              1       subset_bam
-              6       subset_common_snps
-              210
+        Job counts:
+            count   jobs
+            1       all
+            1       common_snps_across_pools
+            132     freebayes
+            6       freebayes_common_snps
+            6       freebayes_merge
+            6       freebayes_update_vcf
+            6       freebayes_vcf2plink
+            6       index
+            1       reference_common_snps
+            1       reference_final_pruning
+            1       reference_pca_1000g
+            1       reference_pca_project
+            1       reference_pca_projection_assign_original
+            1       reference_prune_1000g
+            1       reference_vcf2plink
+            1       subset_bam
+            172
 
    .. admonition:: Note
     :class: seealso

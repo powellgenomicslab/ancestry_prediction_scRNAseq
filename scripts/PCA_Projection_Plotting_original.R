@@ -16,16 +16,9 @@ outdir <- arguments[1,]
 data_score <- read_delim(as.character(arguments[2,]), delim = "\t", col_types = cols(.default = "d", "#FID" = "c", "IID" = "c", "Provided_Ancestry" = "c"))
 onekg_score <- read_delim(as.character(arguments[3,]), delim = "\t", col_types = cols(.default = "d", "#IID" = "c", "SuperPop" = "c", "Population" = "c"))
 onekg_anc <- read_delim(as.character(arguments[4,]), delim = "\t", col_types = cols(.default = "c", "SEX" = "d"))
-samples <- fread(as.character(arguments[5,]), sep = "\t")
-colnames(samples) <- c("Pool", "Individual")
-pool <- as.character(arguments[6,])
-indiv <- as.character(arguments[7,])
 
 
-##### Set up variables #####
 
-
-##### Read in PCA Results #####
 
 ##### Remove # from colnames #####
 data_score <- data_score[!(is.na(data_score$PC1_AVG) | data_score$PC1_AVG == "NaN"),]
@@ -110,6 +103,14 @@ ggsave(plot_PCs_medoids, filename = paste0(outdir,"Ancestry_PCAs.png"), height =
 
 fwrite(scores[scores$Plot == "Projected Data Assignments", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments.tsv"), sep = "\t", na = "NA")
 
-if (samples$Pool[1] == pool & samples$Individual[1] == indiv){
-  fwrite(scores[scores$Plot == "1000G Reference", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments_w_ref.tsv"), sep = "\t", na = "NA")
+
+if (nrow(arguments) > 4){
+  samples <- fread(as.character(arguments[5,]), sep = "\t")
+  colnames(samples) <- c("Pool", "Individual")
+  pool <- as.character(arguments[6,])
+  indiv <- as.character(arguments[7,])
+
+  if (samples$Pool[1] == pool & samples$Individual[1] == indiv & !is.na(samples)){
+    fwrite(scores[scores$Plot == "1000G Reference", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments_w_ref.tsv"), sep = "\t", na = "NA")
+  }
 }

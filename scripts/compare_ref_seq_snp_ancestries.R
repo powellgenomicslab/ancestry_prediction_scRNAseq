@@ -224,7 +224,7 @@ anc_joined_long <- melt(anc_joined, measure.vars = c("AFR", "AMR", "EAS", "EUR",
 
 
 ### Add reference data ###
-ref_anc_sub <- ref_df[,c("IID","AFR", "AMR", "EAS", "EUR", "SAS", "combined_assignment")]
+ref_anc_sub <- ref_df[,c("IID","AFR", "AMR", "EAS", "EUR", "SAS", "Final_Assignment")]
 colnames(ref_anc_sub) <- c("IID","AFR", "AMR", "EAS", "EUR", "SAS", "seq_snp_ancestry")
 
 
