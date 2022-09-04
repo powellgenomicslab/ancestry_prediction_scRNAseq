@@ -110,7 +110,7 @@ if (nrow(arguments) > 4){
   pool <- as.character(arguments[6,])
   indiv <- as.character(arguments[7,])
 
-  if (samples$Pool[1] == pool & samples$Individual[1] == indiv & !is.na(samples)){
+  if (samples$Pool[1] == pool & samples$Individual[1] == indiv){
     fwrite(scores[scores$Plot == "1000G Reference", !(colnames(scores) %in% c("SuperPop", "combined_assignment", "Plot"))], paste0(outdir, "ancestry_assignments_w_ref.tsv"), sep = "\t", na = "NA")
   }
 }
