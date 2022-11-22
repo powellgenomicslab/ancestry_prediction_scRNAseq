@@ -169,7 +169,7 @@ The ``*`` indicates that there is a different file for each chromosome from 1 to
 +----------------------+------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
-Define some variables to execute CrossMap to lift the data from hg38 to hg19.
+Define some variables to execute the freebayes SNP calling
 The ``$TARGETS`` is the the bed file containing the common SNP locations in the ``ancestry_prediction_scRNAseq.sif`` image.
 For example for chromosome 1:
 
@@ -180,13 +180,14 @@ For example for chromosome 1:
   FASTA=/path/to/reference/fasta.fa
 
 
-Here's an example command to run freebayes to identify the SNP genotyeps for the individual in the bam file for chromosome 1 but as we mentioned above, we suggest that you run each chromosome in parallel to expedite this step:
+Here's an example command to run freebayes to identify the SNP genotypes for the individual in the bam file for chromosome 1 but as we mentioned above, we suggest that you run each chromosome in parallel to expedite this step:
 
 .. code-block:: bash
 
   singularity exec --bind $BIND,/tmp $SIF fasta_generate_regions.py $FASTA.fai {params.regions} > $OUTDIR/regions
 
   export TMPDIR=/tmp
+  singularity exec --bind $BIND $SIF freebayes -f $FASTA -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets $TARGETS $BAM > $OUTDIR/freebayes_chr1.vcf
   singularity exec --bind $BIND,/tmp $SIF freebayes-parallel $OUTDIR/regionsS $N -f $FASTA -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets $TARGETS $BAM > $OUTDIR/freebayes_chr1.vcf
 
 
