@@ -184,11 +184,10 @@ Here's an example command to run freebayes to identify the SNP genotypes for the
 
 .. code-block:: bash
 
-  singularity exec --bind $BIND,/tmp $SIF fasta_generate_regions.py $FASTA.fai {params.regions} > $OUTDIR/regions
 
   export TMPDIR=/tmp
-  singularity exec --bind $BIND $SIF freebayes -f $FASTA -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets $TARGETS $BAM > $OUTDIR/freebayes_chr1.vcf
-  singularity exec --bind $BIND,/tmp $SIF freebayes-parallel $OUTDIR/regionsS $N -f $FASTA -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets $TARGETS $BAM > $OUTDIR/freebayes_chr1.vcf
+  singularity exec --bind $BIND $SIF freebayes -f $FASTA -iXu -C 2 -q 20 -n 3 -E 1 -m 30 --min-coverage 6 --limit-coverage 100000 --targets $BED_DIR/GRCh38_1000G_MAF0.01_GeneFiltered_NoChr_1.bed $BAM > $OUTDIR/freebayes_chr1.vcf
+
 
 
 .. _merge_freebayes:
