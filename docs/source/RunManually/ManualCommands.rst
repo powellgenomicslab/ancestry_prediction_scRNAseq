@@ -377,7 +377,7 @@ We will use ``--rm-dup force-first`` to help deal with possible duplicate entrie
   mkdir $OUTDIR/filter_1000g
 
   ### First need to subset the 1000g snps for the SNPs common to all sites, pools and individuals ###
-  singularity exec --bind $BIND $SIF grep -v "#" /opt/1000G/all_phase3_filtered.pvar | awk 'BEGIN{{FS=OFS="\t"}}{{print $3}}' > $OUTDIR/filter_1000g/all_1000g_snps.tsv
+  singularity exec --bind $BIND $SIF grep -v "#" /opt/1000G/all_phase3_filtered.pvar | awk 'BEGIN{FS=OFS="\t"}{print $3}' > $OUTDIR/filter_1000g/all_1000g_snps.tsv
   singularity exec --bind $BIND $SIF Rscript /opt/ancestry_prediction_scRNAseq/scripts/subset_1000g_snps.R $COMMON_SNPS $OUTDIR/filter_1000g/all_1000g_snps.tsv $OUTDIR
 
   ### Subset the freebayes-called snps for the new snps ###
